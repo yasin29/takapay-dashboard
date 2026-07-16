@@ -4,10 +4,9 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 
-# .claude/ and .claude-project/ are COMMITTED (decision Jul 16) for cross-device
-# takeover. Strip BOTH before final submission — see CONTINUE-HERE.md.
-# Only the local settings file stays out: it is designed to hold real credentials.
-.claude/settings.local.json
+# Internal tooling / working notes — excluded from the submission repo.
+.claude/
+.claude-project/
 .playwright-cli/
 
 # Environment — secrets live here, never committed
