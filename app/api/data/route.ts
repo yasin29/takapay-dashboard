@@ -4,20 +4,15 @@
 // is the knob that decides data freshness.
 
 import { NextResponse } from "next/server";
-import { runPipeline, type PipelineResult } from "@/pipeline";
+import { getPipelineResult } from "@/lib/server-data";
 
-// Run the pipeline on request (with the TTL cache below) instead of freezing
-// its output into the build — live sources would never update otherwise.
+// Run the pipeline on request (with the TTL cache in lib/server-data) instead
+// of freezing its output into the build — live sources would never update
+// otherwise. The same cache backs the chatbot's tools and the report exporter.
 export const dynamic = "force-dynamic";
 
-const TTL_MS = 5 * 60 * 1000;
-let cache: { at: number; result: PipelineResult } | null = null;
-
 export async function GET() {
-  if (!cache || Date.now() - cache.at > TTL_MS) {
-    cache = { at: Date.now(), result: await runPipeline() };
-  }
-  return NextResponse.json(cache.result, {
+  return NextResponse.json(await getPipelineResult(), {
     headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" },
   });
 }

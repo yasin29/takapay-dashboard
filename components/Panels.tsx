@@ -1,10 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
-import { ShareOfVoiceChart, TopicGroupBars } from "@/components/Charts";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { AttentionShareChart, ShareOfVoiceChart, TopicGroupBars } from "@/components/Charts";
 import {
   DATA_RANGE, SENTIMENT_CHIP, SENTIMENT_COLOR, SENTIMENTS, TOPIC_GROUPS, TOPIC_LABELS, engagement,
-  type ActionItem, type AmplifyTheme, type CampaignWindows, type CompetitorGap, type DateRange, type Filters,
+  type ActionItem, type AmplifyTheme, type CampaignWindows, type CompetitorGap, type DateRange,
+  type EngagementInsights, type Filters, type HeatCell,
   type LaunchReadiness, type Post, type RepeatedPattern, type Sentiment, type VoiceWeek,
 } from "@/lib/data";
 
@@ -93,6 +94,7 @@ const NAV: [string, string, string][] = [
   ["#sentiment", "Sentiment", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-3.5 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM12 17.5c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"],
   ["#topics", "Topics", "M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"],
   ["#intents", "Intents", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 16a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"],
+  ["#reactions", "Engagement", "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"],
   ["#repeats", "Repeated Issues", "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"],
   ["#platforms", "Social Listening", "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 1 0-3-3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65a2.92 2.92 0 1 0 2.92-2.92z"],
   ["#campaign", "Campaign Planner", "M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z"],
@@ -351,6 +353,30 @@ export function DateRangePicker({
   );
 }
 
+const SEARCH_ICON = "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z";
+const LINK_ICON = "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z";
+
+/* The whole view state lives in the URL (see page.tsx), so "share this view"
+   is just copying the current address. */
+function CopyViewLink() {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard
+      .writeText(window.location.href)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      })
+      .catch(() => setCopied(false));
+  };
+  return (
+    <button className="btn-ghost" onClick={copy} title="Copy a link that opens this exact view — filters, search, and dates included">
+      <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, fill: "currentColor" }}><path d={LINK_ICON} /></svg>
+      {copied ? "Copied ✓" : "Copy view link"}
+    </button>
+  );
+}
+
 export function FilterBar({
   filters, setFilters, topics, platforms, updatedAt,
 }: {
@@ -379,6 +405,20 @@ export function FilterBar({
         onToggle={(v) => setFilters({ ...filters, platforms: toggle(filters.platforms, v) })}
         onClear={() => setFilters({ ...filters, platforms: [] })}
       />
+      <div className="search-box">
+        <svg viewBox="0 0 24 24"><path d={SEARCH_ICON} /></svg>
+        <input
+          type="search"
+          value={filters.query}
+          onChange={(e) => setFilters({ ...filters, query: e.target.value })}
+          placeholder="Search post text…"
+          aria-label="Search post text"
+        />
+        {filters.query && (
+          <button className="search-x" onClick={() => setFilters({ ...filters, query: "" })} aria-label="Clear search">✕</button>
+        )}
+      </div>
+      <CopyViewLink />
       {updatedAt && <span className="updated">Data Last Updated: {updatedAt}</span>}
     </div>
   );
@@ -548,20 +588,37 @@ export function TopicGroups({
 
 /* ---------- Repeated issues — the same message, again and again ---------- */
 
-export function RepeatedIssues({ patterns }: { patterns: RepeatedPattern[] }) {
+const METER_TONE: Record<Sentiment, string> = { negative: "red", positive: "teal", neutral: "gray" };
+
+export function RepeatedIssues({ patterns, onFocus }: { patterns: RepeatedPattern[]; onFocus?: (topic: string) => void }) {
+  const copies = patterns.reduce((s, p) => s + p.count, 0);
+  const max = Math.max(...patterns.map((p) => p.count), 1);
   return (
     <div className="card" id="repeats">
-      <h3>What people keep repeating <span className="count-pill">top {patterns.length} patterns</span></h3>
+      <h3>What people keep repeating <span className="count-pill">{fmt(copies)} posts · {patterns.length} messages</span></h3>
       <div className="card-sub">
-        Near-identical wording posted again and again by different accounts (numbers, operators, and places vary; the message doesn&rsquo;t).
-        High repetition means a systemic issue — or coordinated posting.
+        <b>{fmt(copies)} posts are near-copies of just {patterns.length} messages</b> — numbers, operators, and places vary; the message doesn&rsquo;t.
+        That much repetition means a systemic issue, or coordinated posting. Bar length = how often it repeats, colored by what people feel.
       </div>
       <div className="rep-list">
-        {patterns.map((p) => (
-          <div className="rep-item" key={p.sample}>
-            <div className="rep-count">{p.count}×</div>
+        {patterns.map((p, i) => (
+          <div
+            className={`rep-item${i === 0 ? " top" : ""}${onFocus ? " click" : ""}`}
+            key={p.sample}
+            onClick={onFocus ? () => onFocus(p.topic) : undefined}
+          >
+            <div className="rep-count-wrap">
+              <div className="rep-count">{p.count}×</div>
+              <div className="rep-count-sub">posted</div>
+            </div>
             <div className="rep-body">
-              <div className="rep-text">&ldquo;{p.sample}&rdquo;</div>
+              <div className="rep-text">
+                {i === 0 && <span className="loud-chip">loudest message</span>}
+                &ldquo;{p.sample}&rdquo;
+              </div>
+              <div className="meter">
+                <span className={`meter-fill ${METER_TONE[p.dominant]}`} style={{ width: `${Math.round((100 * p.count) / max)}%` }} />
+              </div>
               <div className="rep-meta">
                 {TOPIC_LABELS[p.topic] ?? p.topic} · {p.dominantShare}% {p.dominant} ·{" "}
                 {fmt(p.reactions)} reactions · {fmt(p.comments)} comments
@@ -570,6 +627,62 @@ export function RepeatedIssues({ patterns }: { patterns: RepeatedPattern[] }) {
             <SentimentChip sentiment={p.dominant} />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Engagement panel — where the audience's attention goes ---------- */
+
+export function EngagementPanel({ insights, onFocus }: { insights: EngagementInsights; onFocus: (topic: string) => void }) {
+  const { negAttentionShare, negPostShare, top10Share, maxEng, medianEng, topPlatform, lowPlatform, topPost, rows, totalEng } = insights;
+  return (
+    <div className="card" id="reactions">
+      <div className="card-head-row">
+        <div>
+          <h3>Where the attention goes <span className="count-pill">{fmt(totalEng)} reactions &amp; comments</span></h3>
+          <div className="card-sub">
+            Reactions and comments measure attention. Gray bar = a topic&rsquo;s share of posts, teal bar = its share
+            of engagement; when teal outruns gray, that topic is spreading faster than it is posted — click a bar to see the posts.
+          </div>
+        </div>
+      </div>
+      <div className="mini-tiles">
+        <div className="mini">
+          <div className="mini-label">Attention on negative posts</div>
+          <div className="mini-value">{negAttentionShare}%</div>
+          <div className="mini-note">of all engagement, from {negPostShare}% of posts — attention tracks volume almost 1:1</div>
+        </div>
+        <div className="mini">
+          <div className="mini-label">No viral outliers</div>
+          <div className="mini-value">{top10Share}%</div>
+          <div className="mini-note">
+            of engagement sits in the 10 biggest posts (top {fmt(maxEng)} vs median {fmt(medianEng)}) — organic feeds are usually far spikier
+          </div>
+        </div>
+        <div className="mini">
+          <div className="mini-label">Best platform per post</div>
+          <div className="mini-value">{topPlatform ? topPlatform.name : "—"}</div>
+          <div className="mini-note">
+            {topPlatform && lowPlatform
+              ? `${fmt(topPlatform.avg)} reactions & comments per post, vs ${fmt(lowPlatform.avg)} on ${lowPlatform.name}`
+              : ""}
+          </div>
+        </div>
+      </div>
+      {rows.length > 0 && <AttentionShareChart rows={rows} onFocus={onFocus} />}
+      <div className="chart-note">
+        The read for a brand manager: nothing here is going viral — engagement is spread almost uniformly across
+        {" "}the feed, and no topic earns attention out of proportion to its volume. In an organic feed a handful of
+        posts usually dominates; this flatness, together with the templated wording in &ldquo;What people keep
+        repeating&rdquo;, points to volume that is manufactured rather than amplified.
+        {topPost && (
+          <>
+            {" "}Even the single biggest post ({fmt(engagement(topPost))} reactions + comments,{" "}
+            {TOPIC_LABELS[topPost.topic] ?? topPost.topic}) is only ~2× the median: &ldquo;
+            {topPost.text.length > 90 ? `${topPost.text.slice(0, 90)}…` : topPost.text}&rdquo;
+          </>
+        )}
       </div>
     </div>
   );
@@ -592,13 +705,58 @@ function pageNumbers(current: number, total: number): (number | "…")[] {
   return out;
 }
 
-const COLUMNS = ["Date", "Platform", "Post Summary", "Topic", "Sentiment", "Reactions", "Comments"];
+type SortKey = "date" | "platform" | "text" | "topic" | "sentiment" | "reactions" | "comments";
+
+const COLUMNS: { label: string; key: SortKey }[] = [
+  { label: "Date", key: "date" },
+  { label: "Platform", key: "platform" },
+  { label: "Post Summary", key: "text" },
+  { label: "Topic", key: "topic" },
+  { label: "Sentiment", key: "sentiment" },
+  { label: "Reactions", key: "reactions" },
+  { label: "Comments", key: "comments" },
+];
+
+// Sentiment sorts by severity (negative first when descending), not alphabetically
+const SENTIMENT_RANK: Record<Sentiment, number> = { positive: 0, neutral: 1, negative: 2 };
+
+const SORT_VALUE: Record<SortKey, (p: Post) => string | number> = {
+  date: (p) => p.timestamp,
+  platform: (p) => p.platform,
+  text: (p) => p.text.toLowerCase(),
+  topic: (p) => TOPIC_LABELS[p.topic] ?? p.topic,
+  sentiment: (p) => SENTIMENT_RANK[p.sentiment],
+  reactions: (p) => p.reactions,
+  comments: (p) => p.comments,
+};
+
+// Text columns open ascending (A→Z); numeric and date columns open descending
+const ASC_FIRST: SortKey[] = ["platform", "text", "topic"];
 
 export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[]; focusLabel?: string; onClearFocus?: () => void }) {
   const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [posts]);
-  const pages = Math.max(1, Math.ceil(posts.length / PER_PAGE));
-  const shown = posts.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  // Column sort cycles per header: default direction → flipped → back to the
+  // engagement order the posts arrive in.
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
+  useEffect(() => setPage(1), [posts, sort]);
+  const sorted = useMemo(() => {
+    if (!sort) return posts;
+    const val = SORT_VALUE[sort.key];
+    return [...posts].sort((x, y) => {
+      const a = val(x);
+      const b = val(y);
+      return (a < b ? -1 : a > b ? 1 : 0) * sort.dir;
+    });
+  }, [posts, sort]);
+  const clickSort = (key: SortKey) => {
+    const first: 1 | -1 = ASC_FIRST.includes(key) ? 1 : -1;
+    setSort((s) => (!s || s.key !== key ? { key, dir: first } : s.dir === first ? { key, dir: -first as 1 | -1 } : null));
+  };
+  const pages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
+  const shown = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const sortNote = sort
+    ? `sorted by ${COLUMNS.find((c) => c.key === sort.key)!.label.toLowerCase()} (${sort.dir === 1 ? "ascending" : "descending"})`
+    : "sorted by engagement — click a column header to re-sort";
   return (
     <div className="card" id="posts">
       <div className="card-head-row">
@@ -606,7 +764,7 @@ export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[];
           <h3>
             The posts behind the numbers <span className="count-pill">{fmt(posts.length)} {focusLabel ? `posts · ${focusLabel}` : "posts"}</span>
           </h3>
-          <div className="card-sub">Every chart above is backed by these records — sorted by engagement.</div>
+          <div className="card-sub">Every chart above is backed by these records — {sortNote}.</div>
         </div>
         {focusLabel && onClearFocus && (
           <button className="btn-ghost" onClick={onClearFocus}>Clear focus ✕</button>
@@ -617,7 +775,12 @@ export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[];
           <thead>
             <tr>
               {COLUMNS.map((c) => (
-                <th key={c}>{c}<span className="sort-arr">↓</span></th>
+                <th key={c.key} className="sortable" onClick={() => clickSort(c.key)} title={`Sort by ${c.label.toLowerCase()}`}>
+                  {c.label}
+                  <span className={`sort-arr${sort?.key === c.key ? " active" : ""}`}>
+                    {sort?.key === c.key ? (sort.dir === 1 ? "↑" : "↓") : "↕"}
+                  </span>
+                </th>
               ))}
             </tr>
           </thead>
@@ -658,11 +821,36 @@ export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[];
 
 /* ---------- Campaign planner — is it safe, what to say, where and when ---------- */
 
-const VERDICT_COPY: Record<LaunchReadiness["verdict"], { label: string; cls: string }> = {
-  hold: { label: "Hold paid promotion", cls: "hold" },
-  caution: { label: "Proceed with caution", cls: "caution" },
-  ready: { label: "Clear to launch", cls: "ready" },
+const VERDICT_ICONS: Record<LaunchReadiness["verdict"], string> = {
+  hold: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9A7.9 7.9 0 0 1 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1A7.9 7.9 0 0 1 20 12c0 4.42-3.58 8-8 8z",
+  caution: "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z",
+  ready: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z",
 };
+
+const VERDICT_LABEL: Record<LaunchReadiness["verdict"], string> = {
+  hold: "Hold paid promotion",
+  caution: "Proceed with caution",
+  ready: "Clear to launch",
+};
+
+const STEP_ICONS = {
+  fix: "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z",
+  amplify: "M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z",
+  where: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z",
+  when: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z",
+};
+
+function StepHead({ tone, icon, title, sub }: { tone: "red" | "teal" | "purple" | "sky"; icon: string; title: string; sub: string }) {
+  return (
+    <div className="step-head">
+      <span className={`step-ico ${tone}`}><svg viewBox="0 0 24 24"><path d={icon} /></svg></span>
+      <span className="step-txt">
+        <span className="step-title">{title}</span>
+        <span className="step-sub">{sub}</span>
+      </span>
+    </div>
+  );
+}
 
 export function CampaignPlanner({
   readiness, themes, windows, onFocus,
@@ -672,102 +860,152 @@ export function CampaignPlanner({
   windows: CampaignWindows;
   onFocus: (topic: string) => void;
 }) {
-  const verdict = VERDICT_COPY[readiness.verdict];
-  const best = windows.best;
+  const hard = readiness.blockers.filter((b) => b.severity === "blocker").length;
+  const reason =
+    readiness.verdict === "hold"
+      ? `${readiness.negShare}% of counted mentions are negative and ${hard} theme${hard === 1 ? " is" : "s are"} loudly negative — a paid campaign now puts budget behind amplifying the complaints.`
+      : readiness.verdict === "caution"
+        ? `No hard blockers, but ${readiness.blockers.length} warm theme${readiness.blockers.length === 1 ? "" : "s"} could flare up in the campaign's comments — prepare responses first.`
+        : "No loudly negative themes in the feed — safe to draw a crowd.";
   return (
     <div className="card" id="campaign">
-      <h3>
-        Plan the next campaign
-        <span className={`verdict ${verdict.cls}`}>{verdict.label}</span>
-      </h3>
+      <h3>Plan the next campaign</h3>
       <div className="card-sub">
-        A launch is an attention magnet — it amplifies whatever people already feel. Three calls from this month&rsquo;s feed:
-        what must be fixed before drawing a crowd, which proof points to build the message on, and where the audience actually responds.
+        A launch is an attention magnet — it amplifies whatever people already feel.
+        What to fix before drawing a crowd, what to say, and where and when to say it — all from this month&rsquo;s feed.
+      </div>
+      <div className={`verdict-banner ${readiness.verdict}`}>
+        <svg viewBox="0 0 24 24"><path d={VERDICT_ICONS[readiness.verdict]} /></svg>
+        <div>
+          <b>{VERDICT_LABEL[readiness.verdict]}</b>
+          <span>{reason}</span>
+        </div>
       </div>
       <div className="cp-grid">
         <div className="cp-block">
-          <div className="mini-head">1 · Fix before you launch</div>
-          <div className="cp-hint">
-            {readiness.negShare}% of counted mentions are negative. Promote now and these become the campaign&rsquo;s comment section — click one to read them.
-          </div>
+          <StepHead tone="red" icon={STEP_ICONS.fix} title="Fix before you launch" sub="Loud negative themes — promote now and these fill the campaign's comments. Click to read them." />
           {readiness.blockers.map((b) => (
             <div className="gate-row" key={b.topic} onClick={() => onFocus(b.topic)}>
-              <span className={`badge ${b.severity === "blocker" ? "fix" : "watch"}`}>
-                {b.severity === "blocker" ? "! blocker" : "~ warm"}
-              </span>
-              <span className="gate-label">{b.label}</span>
-              <span className="gate-meta"><b>{b.negShare}%</b> negative of <b>{fmt(b.total)}</b> posts</span>
+              <div className="gate-top">
+                <span className="gate-label">{b.label}</span>
+                <span className={`badge ${b.severity === "blocker" ? "fix" : "watch"}`}>
+                  {b.severity === "blocker" ? "! blocker" : "~ warm"}
+                </span>
+                <span className="gate-meta"><b>{b.negShare}%</b> negative · {fmt(b.total)} posts</span>
+              </div>
+              <div className="meter"><span className="meter-fill red" style={{ width: `${b.negShare}%` }} /></div>
             </div>
           ))}
         </div>
         <div className="cp-block">
-          <div className="mini-head">2 · Amplify what already works</div>
-          <div className="cp-hint">
-            Themes people praise unprompted — the most-engaged real posts are the campaign copy, in the customers&rsquo; own words.
-          </div>
+          <StepHead tone="teal" icon={STEP_ICONS.amplify} title="Amplify what already works" sub="Themes people praise unprompted — the most-engaged post is the campaign copy, in their own words." />
           {themes.map((t) => (
-            <div className="amp-row" key={t.topic} onClick={() => onFocus(t.topic)}>
-              <div className="amp-head">
+            <div className="gate-row" key={t.topic} onClick={() => onFocus(t.topic)}>
+              <div className="gate-top">
                 <span className="gate-label">{t.label}</span>
-                <span className="gate-meta"><b>{t.posShare}%</b> positive · <b>{fmt(t.positive)}</b> posts</span>
+                <span className="gate-meta"><b>{t.posShare}%</b> positive · {fmt(t.positive)} posts</span>
               </div>
+              <div className="meter"><span className="meter-fill teal" style={{ width: `${t.posShare}%` }} /></div>
               {t.quotes[0] && <div className="amp-quote">&ldquo;{t.quotes[0].text}&rdquo;</div>}
             </div>
           ))}
         </div>
         <div className="cp-block">
-          <div className="mini-head">3a · Where to run it</div>
-          <div className="cp-hint">Positive share by platform — run the promotion where the mood is, answer complaints where they are.</div>
-          {windows.platforms.map((p) => (
-            <div className="plat-row" key={p.platform}>
+          <StepHead tone="purple" icon={STEP_ICONS.where} title="Where to run it" sub="Positive share by platform — run the promotion where the mood is, answer complaints where they are." />
+          {windows.platforms.map((p, i) => (
+            <div className={`plat-row${i === 0 ? " lead" : ""}`} key={p.platform}>
               <span className="plat-row-name">{p.platform}</span>
-              <span className="plat-bar">
-                <span className="plat-bar-fill" style={{ width: `${p.posShare}%` }} />
-              </span>
+              <span className="meter"><span className="meter-fill teal" style={{ width: `${p.posShare}%` }} /></span>
               <span className="gate-meta"><b>{p.posShare}%</b> positive · {fmt(p.avgEng)} avg eng.</span>
             </div>
           ))}
         </div>
-        <div className="cp-block">
-          <div className="mini-head">3b · When to post</div>
-          <div className="cp-hint">Average reactions + comments per post, by weekday and daypart — when the audience is paying attention.</div>
-          <div className="heat-grid">
-            <span />
-            {windows.days.map((d) => (
-              <span className="heat-axis" key={d}>{d}</span>
-            ))}
-            {windows.buckets.map((b) => (
-              <Fragment key={b}>
-                <span className="heat-axis row">{b.split(" ")[0]}</span>
-                {windows.days.map((d) => {
-                  const c = windows.cells.find((x) => x.day === d && x.bucket === b)!;
-                  const isBest = best && c.day === best.day && c.bucket === best.bucket;
-                  return (
-                    <span
-                      key={d + b}
-                      className={`heat-cell${isBest ? " best" : ""}`}
-                      style={{ background: `rgba(46, 160, 147, ${(0.06 + 0.66 * c.norm).toFixed(2)})` }}
-                      title={`${d} ${c.bucket}: ${c.posts} posts, avg ${c.avgEng} reactions+comments`}
-                    >
-                      {c.avgEng}
-                    </span>
-                  );
-                })}
-              </Fragment>
-            ))}
-          </div>
-          {best && (
-            <div className="cp-hint" style={{ marginTop: 8, marginBottom: 0 }}>
-              Best window: <b>{best.day}, {best.bucket.toLowerCase()}</b> — avg {best.avgEng} reactions + comments per post.
-            </div>
-          )}
-        </div>
+        <HeatBlock windows={windows} />
       </div>
     </div>
   );
 }
 
+/* ---------- "When to post" heatmap — one grid, three lenses ----------
+   The same weekday x daypart grid can answer three different questions:
+   when posts get the most attention (avg engagement), when the conversation
+   is loudest (volume), and when the mood is friendliest (% positive). */
+
+type HeatMetric = "avgEng" | "posts" | "posShare";
+
+const HEAT_METRICS: { key: HeatMetric; label: string; sub: string }[] = [
+  { key: "avgEng", label: "Avg engagement", sub: "Average reactions + comments per post — when the audience is paying attention." },
+  { key: "posts", label: "Post volume", sub: "How many posts land in each window — when the conversation is loudest." },
+  { key: "posShare", label: "% positive", sub: "Share of posts that are positive — when the mood is friendliest to a promotion." },
+];
+
+function HeatBlock({ windows }: { windows: CampaignWindows }) {
+  const [metric, setMetric] = useState<HeatMetric>("avgEng");
+  const value = (c: HeatCell) => (metric === "avgEng" ? c.avgEng : metric === "posts" ? c.posts : c.posShare);
+  const max = Math.max(...windows.cells.map(value), 1);
+  // Rate metrics need a volume floor — a 100%-positive slot with 2 posts is not a window
+  const best = windows.cells.reduce<HeatCell | null>(
+    (a, c) => (c.posts >= 5 && (!a || value(c) > value(a)) ? c : a),
+    null
+  );
+  const bestNote = best
+    ? metric === "avgEng"
+      ? `avg ${best.avgEng} reactions + comments per post`
+      : metric === "posts"
+        ? `${best.posts} posts — the busiest slot`
+        : `${best.posShare}% positive across ${best.posts} posts`
+    : "";
+  return (
+    <div className="cp-block">
+      <StepHead tone="sky" icon={STEP_ICONS.when} title="When to post" sub={`By weekday and daypart. ${HEAT_METRICS.find((m) => m.key === metric)!.sub}`} />
+      <div className="seg" role="tablist" aria-label="Heatmap metric">
+        {HEAT_METRICS.map((m) => (
+          <button key={m.key} role="tab" aria-selected={metric === m.key} className={metric === m.key ? "active" : ""} onClick={() => setMetric(m.key)}>
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <div className="heat-grid">
+        <span />
+        {windows.days.map((d) => (
+          <span className="heat-axis" key={d}>{d}</span>
+        ))}
+        {windows.buckets.map((b, bi) => (
+          <Fragment key={b}>
+            <span className="heat-axis row">{b.split(" ")[0]}</span>
+            {windows.days.map((d, di) => {
+              const c = windows.cells.find((x) => x.day === d && x.bucket === b)!;
+              const isBest = best && c.day === best.day && c.bucket === best.bucket;
+              return (
+                <span
+                  key={d + b}
+                  className={`heat-cell${isBest ? " best" : ""}`}
+                  style={{
+                    background: `rgba(46, 160, 147, ${(0.06 + 0.66 * (value(c) / max)).toFixed(2)})`,
+                    animationDelay: `${(bi * 7 + di) * 22}ms`,
+                  }}
+                  title={`${d} ${c.bucket}: ${c.posts} posts, avg ${c.avgEng} reactions+comments, ${c.posShare}% positive`}
+                >
+                  {metric === "posShare" ? `${c.posShare}%` : value(c)}
+                </span>
+              );
+            })}
+          </Fragment>
+        ))}
+      </div>
+      {best && (
+        <div className="best-window">
+          <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg>
+          <span>Best window: <b>{best.day}, {best.bucket.toLowerCase()}</b> — {bestNote}.</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Competitor watch — how loudly NgoodPay features in OUR feed ---------- */
+
+const GAP_STATUSES: CompetitorGap["status"][] = ["exposed", "defensible", "unproven"];
 
 export function CompetitorPanel({
   sov, gaps, onFocus,
@@ -777,6 +1015,8 @@ export function CompetitorPanel({
   onFocus: (topic: string) => void;
 }) {
   const mentions = sov.reduce((s, w) => s + w.competitor, 0);
+  const [status, setStatus] = useState<CompetitorGap["status"] | "all">("all");
+  const shownGaps = status === "all" ? gaps : gaps.filter((g) => g.status === status);
   return (
     <div className="card" id="competitor">
       <div className="card-head-row">
@@ -797,7 +1037,26 @@ export function CompetitorPanel({
         </div>
         <div className="cp-block">
           <div className="mini-head">What they&rsquo;re praised for — and where it lands on us</div>
-          {gaps.map((g) => (
+          <div className="status-chips">
+            <button className={`status-chip${status === "all" ? " active" : ""}`} onClick={() => setStatus("all")}>
+              All <b>{gaps.length}</b>
+            </button>
+            {GAP_STATUSES.map((s) => {
+              const n = gaps.filter((g) => g.status === s).length;
+              return (
+                <button
+                  key={s}
+                  className={`status-chip ${s}${status === s ? " active" : ""}`}
+                  disabled={n === 0}
+                  onClick={() => setStatus(status === s ? "all" : s)}
+                >
+                  {s} <b>{n}</b>
+                </button>
+              );
+            })}
+          </div>
+          {shownGaps.length === 0 && <div className="chart-note">No claims with this status in the current feed.</div>}
+          {shownGaps.map((g) => (
             <div className="gap-row" key={g.claim}>
               <div className="rep-count">{g.count}×</div>
               <div className="rep-body">

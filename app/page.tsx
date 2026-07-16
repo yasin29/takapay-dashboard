@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  DATA_RANGE, INTENTS, INTENT_COLOR, TOPIC_LABELS, actionItems, amplifyThemes, applyFilters,
-  campaignWindows, competitorGaps, dailyTrend, engagement, inRange, intentTrend,
-  languageBreakdown, launchReadiness, platformBreakdown, rangeLabel,
-  repeatedPatterns, sentimentSplit, shareOfVoice, topicBreakdown,
+  DATA_RANGE, EMPTY_FILTERS, INTENTS, INTENT_COLOR, TOPIC_LABELS, actionItems, amplifyThemes, applyFilters,
+  campaignWindows, competitorGaps, dailyTrend, engagement, engagementInsights, inRange, intentTrend,
+  languageBreakdown, launchReadiness, platformBreakdown, queryToView, rangeLabel,
+  repeatedPatterns, sentimentSplit, shareOfVoice, topicBreakdown, viewToQuery,
   type DateRange, type Filters, type Post, type QualityReport,
 } from "@/lib/data";
 import { IntentTrendChart, LanguageDonut, PlatformChart, SentimentDonut, TopicSentimentChart, TrendChart } from "@/components/Charts";
 import {
-  ActionPanel, CAL_ICON, CampaignPlanner, CompetitorPanel, DateRangePicker, FilterBar, PostsTable,
+  ActionPanel, CAL_ICON, CampaignPlanner, CompetitorPanel, DateRangePicker, EngagementPanel, FilterBar, PostsTable,
   RepeatedIssues, Sidebar, StatTiles,
 } from "@/components/Panels";
 
-const EMPTY: Filters = { sentiments: [], topics: [], platforms: [] };
+const EMPTY: Filters = EMPTY_FILTERS;
 
 interface ApiData {
   records: Post[];
@@ -34,6 +34,27 @@ export default function Page() {
   const [range, setRange] = useState<DateRange>(DATA_RANGE);
   const [compareRange, setCompareRange] = useState<DateRange | null>(null);
   const [picker, setPicker] = useState<"main" | "compare" | null>(null);
+
+  // Shareable views: the URL is the whole view state. Read it once on mount
+  // (in an effect, not the initializers, so server and client render the same
+  // first frame), then mirror every state change back with replaceState.
+  const urlSynced = useRef(false);
+  useEffect(() => {
+    const v = queryToView(window.location.search);
+    setFilters(v.filters);
+    setRange(v.range);
+    setCompareRange(v.compareRange);
+    setFocusTopic(v.focusTopic);
+  }, []);
+  useEffect(() => {
+    // Skip the first pass — state still holds defaults until the parse above lands.
+    if (!urlSynced.current) {
+      urlSynced.current = true;
+      return;
+    }
+    const qs = viewToQuery({ filters, range, compareRange, focusTopic });
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [filters, range, compareRange, focusTopic]);
 
   useEffect(() => {
     fetch("/api/data")
@@ -66,6 +87,7 @@ export default function Page() {
     [topics]
   );
   const intents = useMemo(() => intentTrend(filtered), [filtered]);
+  const attention = useMemo(() => engagementInsights(filtered), [filtered]);
   const platforms = useMemo(() => platformBreakdown(filtered), [filtered]);
   const languages = useMemo(() => languageBreakdown(filtered), [filtered]);
   const actions = useMemo(() => actionItems(posts), [posts]);
@@ -188,7 +210,11 @@ export default function Page() {
         </div>
 
         <div style={{ marginTop: 16 }}>
-          <RepeatedIssues patterns={repeats} />
+          <EngagementPanel insights={attention} onFocus={focusAndScroll} />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <RepeatedIssues patterns={repeats} onFocus={focusAndScroll} />
         </div>
 
         <div className="grid two-even" id="platforms" style={{ marginTop: 16 }}>

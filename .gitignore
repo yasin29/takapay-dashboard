@@ -7,3 +7,7 @@ next-env.d.ts
 # Local Claude Code tooling — available to the editor, never part of this submission.
 .claude/
 .playwright-cli/
+
+# Environment — secrets live here, never committed
+.env
+.env.local

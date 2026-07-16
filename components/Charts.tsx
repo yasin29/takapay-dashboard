@@ -162,6 +162,34 @@ export function TopicSentimentChart({
   );
 }
 
+/* Attention vs volume — % of posts vs % of engagement per topic. A topic whose
+   teal bar (engagement) outruns its gray bar (posts) spreads faster than it is
+   posted; that gap is the amplification signal. */
+export function AttentionShareChart({
+  rows, onFocus,
+}: {
+  rows: { topic: string; label: string; postShare: number; engShare: number }[];
+  onFocus: (topic: string) => void;
+}) {
+  const height = rows.length * 52 + 40;
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={rows} layout="vertical" margin={{ top: 0, right: 36, left: 12, bottom: 0 }} barSize={11} barGap={3}>
+        <CartesianGrid stroke={GRID} horizontal={false} />
+        <XAxis type="number" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} unit="%" allowDecimals={false} />
+        <YAxis type="category" dataKey="label" tick={{ ...AXIS, fontSize: 12, fill: "#47454e" }} tickLine={false} axisLine={false} width={128} />
+        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [`${v}% ${n === "postShare" ? "of all posts" : "of all reactions & comments"}`, n === "postShare" ? "Share of posts" : "Share of engagement"]} cursor={{ fill: "#f4f4f5" }} />
+        <Legend verticalAlign="top" align="center" iconType="square" iconSize={10} wrapperStyle={{ ...LEGEND, paddingBottom: 8 }}
+          formatter={(v) => (v === "postShare" ? "Share of posts" : "Share of engagement")} />
+        <Bar isAnimationActive={false} dataKey="postShare" fill="#D0CFD4" radius={[0, 3, 3, 0]} onClick={(d) => onFocus(d.topic)} cursor="pointer" />
+        <Bar isAnimationActive={false} dataKey="engShare" fill="#37C0B0" radius={[0, 3, 3, 0]} onClick={(d) => onFocus(d.topic)} cursor="pointer">
+          <LabelList dataKey="engShare" position="right" formatter={(v: number) => `${v}%`} style={{ fontSize: 11, fontWeight: 700, fill: "#1b6058" }} />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 /* Intent Based Mentions — daily counts per derived conversation signal */
 export function IntentTrendChart({
   data, intents, colors,

@@ -50,16 +50,21 @@ export interface Filters {
   sentiments: Sentiment[];
   topics: string[];
   platforms: string[];
+  query: string;
 }
+
+export const EMPTY_FILTERS: Filters = { sentiments: [], topics: [], platforms: [], query: "" };
 
 export const engagement = (p: Post) => p.reactions + p.comments;
 
 export function applyFilters(posts: Post[], f: Filters): Post[] {
+  const q = f.query.trim().toLowerCase();
   return posts.filter(
     (p) =>
       (f.sentiments.length === 0 || f.sentiments.includes(p.sentiment)) &&
       (f.topics.length === 0 || f.topics.includes(p.topic)) &&
-      (f.platforms.length === 0 || f.platforms.includes(p.platform))
+      (f.platforms.length === 0 || f.platforms.includes(p.platform)) &&
+      (q === "" || p.text.toLowerCase().includes(q))
   );
 }
 
@@ -305,6 +310,7 @@ export interface HeatCell {
   bucket: string;
   posts: number;
   avgEng: number;
+  posShare: number; // % of the cell's posts that are positive
   norm: number; // 0..1 against the busiest cell, for color intensity
 }
 
@@ -339,22 +345,28 @@ export function campaignWindows(posts: Post[]): CampaignWindows {
   });
   platforms.sort((a, b) => b.posShare - a.posShare || b.avgEng - a.avgEng);
 
-  const grid = new Map<string, { posts: number; eng: number }>();
+  const grid = new Map<string, { posts: number; eng: number; positive: number }>();
   for (const p of posts) {
     const dt = new Date(p.timestamp.replace(" ", "T"));
     const hour = dt.getHours();
     const bucket = TIME_BUCKETS.find((b) => (b.from <= b.to ? hour >= b.from && hour <= b.to : hour >= b.from || hour <= b.to))!;
     const key = `${DAY_NAMES[dt.getDay()]}|${bucket.name}`;
-    if (!grid.has(key)) grid.set(key, { posts: 0, eng: 0 });
+    if (!grid.has(key)) grid.set(key, { posts: 0, eng: 0, positive: 0 });
     const cell = grid.get(key)!;
     cell.posts++;
     cell.eng += engagement(p);
+    if (p.sentiment === "positive") cell.positive++;
   }
   const cells: HeatCell[] = [];
   for (const day of DAY_NAMES) {
     for (const b of TIME_BUCKETS) {
-      const c = grid.get(`${day}|${b.name}`) ?? { posts: 0, eng: 0 };
-      cells.push({ day, bucket: b.name, posts: c.posts, avgEng: c.posts > 0 ? Math.round(c.eng / c.posts) : 0, norm: 0 });
+      const c = grid.get(`${day}|${b.name}`) ?? { posts: 0, eng: 0, positive: 0 };
+      cells.push({
+        day, bucket: b.name, posts: c.posts,
+        avgEng: c.posts > 0 ? Math.round(c.eng / c.posts) : 0,
+        posShare: c.posts > 0 ? Math.round((100 * c.positive) / c.posts) : 0,
+        norm: 0,
+      });
     }
   }
   const max = Math.max(...cells.map((c) => c.avgEng), 1);
@@ -503,6 +515,64 @@ export function intentTrend(posts: Post[]) {
     });
 }
 
+/* ---------- Engagement insights — where the audience's attention goes ----------
+   Reactions and comments measure attention. The insight is not the totals but
+   the mismatch: which sentiment and which topics earn MORE attention than
+   their share of posts. Those are the themes that spread. */
+
+export interface EngagementInsights {
+  totalEng: number;
+  negAttentionShare: number; // % of all engagement landing on negative posts
+  negPostShare: number; // % of posts that are negative (for the contrast)
+  top10Share: number; // % of all engagement held by the 10 most-engaged posts
+  maxEng: number;
+  medianEng: number;
+  topPlatform: { name: string; avg: number } | null;
+  lowPlatform: { name: string; avg: number } | null;
+  topPost: Post | null;
+  // per-topic: share of posts vs share of engagement — a gap means amplification
+  rows: { topic: string; label: string; postShare: number; engShare: number; avg: number }[];
+}
+
+export function engagementInsights(posts: Post[]): EngagementInsights {
+  const totalEng = posts.reduce((s, p) => s + engagement(p), 0);
+  const neg = posts.filter((p) => p.sentiment === "negative");
+  const engOf = (list: Post[]) => list.reduce((s, p) => s + engagement(p), 0);
+  const sorted = [...posts].sort((a, b) => engagement(b) - engagement(a));
+  const platAvg = new Map<string, { n: number; e: number }>();
+  for (const p of posts) {
+    if (!platAvg.has(p.platform)) platAvg.set(p.platform, { n: 0, e: 0 });
+    const row = platAvg.get(p.platform)!;
+    row.n++;
+    row.e += engagement(p);
+  }
+  const platRank = [...platAvg.entries()]
+    .map(([name, r]) => ({ name, avg: Math.round(r.e / r.n) }))
+    .sort((a, b) => b.avg - a.avg);
+  const rows = topicBreakdown(posts)
+    .map((t) => ({
+      topic: t.topic,
+      label: TOPIC_LABELS[t.topic] ?? t.topic,
+      postShare: Math.round((1000 * t.total) / Math.max(posts.length, 1)) / 10,
+      engShare: Math.round((1000 * t.eng) / Math.max(totalEng, 1)) / 10,
+      avg: Math.round(t.eng / Math.max(t.total, 1)),
+    }))
+    .sort((a, b) => b.engShare - a.engShare)
+    .slice(0, 8);
+  return {
+    totalEng,
+    negAttentionShare: totalEng ? Math.round((100 * engOf(neg)) / totalEng) : 0,
+    negPostShare: posts.length ? Math.round((100 * neg.length) / posts.length) : 0,
+    top10Share: totalEng ? Math.round((1000 * engOf(sorted.slice(0, 10))) / totalEng) / 10 : 0,
+    maxEng: sorted.length ? engagement(sorted[0]) : 0,
+    medianEng: sorted.length ? engagement(sorted[Math.floor(sorted.length / 2)]) : 0,
+    topPlatform: platRank[0] ?? null,
+    lowPlatform: platRank.length > 1 ? platRank[platRank.length - 1] : null,
+    topPost: sorted[0] ?? null,
+    rows,
+  };
+}
+
 /* ---------- Date ranges — the picker's contract ----------
    Dates are "YYYY-MM-DD" strings; the dataset spans June 2026 only. */
 
@@ -522,3 +592,54 @@ export const rangeLabel = (r: DateRange) => {
   const f = (s: string) => `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][parseInt(s.slice(5, 7), 10) - 1]} ${parseInt(s.slice(8, 10), 10)}`;
   return `${f(r.a)} — ${f(r.b)}`;
 };
+
+/* ---------- Shareable views — the whole dashboard state fits in a URL ----------
+   Every filter pill, the search query, both date ranges, and the table focus
+   serialize into the query string, so a filtered view can be pasted into chat
+   and opens exactly as the sender saw it. Defaults are omitted to keep URLs short. */
+
+export interface ViewState {
+  filters: Filters;
+  range: DateRange;
+  compareRange: DateRange | null;
+  focusTopic: string | null;
+}
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+const parseRange = (raw: string | null): DateRange | null => {
+  if (!raw) return null;
+  const [a, b] = raw.split("_");
+  if (!ISO_DAY.test(a ?? "") || !ISO_DAY.test(b ?? "") || a > b) return null;
+  if (b < DATA_RANGE.a || a > DATA_RANGE.b) return null;
+  return { a: a < DATA_RANGE.a ? DATA_RANGE.a : a, b: b > DATA_RANGE.b ? DATA_RANGE.b : b };
+};
+
+export function viewToQuery(v: ViewState): string {
+  const sp = new URLSearchParams();
+  if (v.filters.sentiments.length) sp.set("s", v.filters.sentiments.join(","));
+  if (v.filters.topics.length) sp.set("t", v.filters.topics.join(","));
+  if (v.filters.platforms.length) sp.set("p", v.filters.platforms.join(","));
+  if (v.filters.query.trim()) sp.set("q", v.filters.query.trim());
+  if (v.range.a !== DATA_RANGE.a || v.range.b !== DATA_RANGE.b) sp.set("r", `${v.range.a}_${v.range.b}`);
+  if (v.compareRange) sp.set("cmp", `${v.compareRange.a}_${v.compareRange.b}`);
+  if (v.focusTopic) sp.set("focus", v.focusTopic);
+  return sp.toString();
+}
+
+export function queryToView(qs: string): ViewState {
+  const sp = new URLSearchParams(qs);
+  const list = (key: string) => (sp.get(key) ?? "").split(",").filter(Boolean);
+  const focus = sp.get("focus");
+  return {
+    filters: {
+      sentiments: list("s").filter((s): s is Sentiment => (SENTIMENTS as string[]).includes(s)),
+      topics: list("t").filter((t) => t in TOPIC_LABELS),
+      platforms: list("p"),
+      query: sp.get("q") ?? "",
+    },
+    range: parseRange(sp.get("r")) ?? DATA_RANGE,
+    compareRange: parseRange(sp.get("cmp")),
+    focusTopic: focus && focus in TOPIC_LABELS ? focus : null,
+  };
+}
