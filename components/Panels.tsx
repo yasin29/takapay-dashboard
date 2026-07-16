@@ -2,12 +2,71 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  SENTIMENT_COLOR, SENTIMENTS, TOPIC_GROUPS, TOPIC_LABELS, engagement,
+  SENTIMENT_CHIP, SENTIMENT_COLOR, SENTIMENTS, TOPIC_GROUPS, TOPIC_LABELS, engagement,
   type ActionItem, type Filters, type Post, type RepeatedPattern, type Sentiment,
 } from "@/lib/data";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const fmt = (n: number) => n.toLocaleString("en-US");
+// Lakh-style grouping (1,42,262) — the convention DeepDive's own dashboards use
+const fmt = (n: number) => n.toLocaleString("en-IN");
+
+function Chevron({ open, className = "chev" }: { open?: boolean; className?: string }) {
+  return (
+    <svg className={`${className}${open ? " open" : ""}`} viewBox="0 0 20 20">
+      <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SentimentChip({ sentiment }: { sentiment: Sentiment }) {
+  const c = SENTIMENT_CHIP[sentiment];
+  return (
+    <span className="chip" style={{ background: c.bg, borderColor: c.border, color: c.text }}>
+      {cap(sentiment)}
+    </span>
+  );
+}
+
+/* Brand-colored platform glyphs, as in DeepDive's flagged-content table */
+const PLATFORM_ICONS: Record<string, JSX.Element> = {
+  Facebook: (
+    <svg viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4h-3v-3.5h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9v2.3h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12z" /></svg>
+  ),
+  Instagram: (
+    <svg viewBox="0 0 24 24"><path fill="#E4405F" d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 3.2-1.6 4.8-4.9 4.9-1.3.1-1.6.1-4.9.1s-3.6 0-4.8-.1c-3.3-.1-4.8-1.7-4.9-4.9-.1-1.3-.1-1.6-.1-4.8s0-3.6.1-4.8C2.4 4 3.9 2.4 7.2 2.3 8.4 2.2 8.8 2.2 12 2.2zm0 3.6a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-10.5a1.4 1.4 0 1 0 0 2.9 1.4 1.4 0 0 0 0-2.9z" /></svg>
+  ),
+  Twitter: (
+    <svg viewBox="0 0 24 24"><path fill="#1E1D21" d="M18.9 1.2h3.7l-8.1 9.3L24 22.8h-7.5l-5.9-7.7-6.7 7.7H.2l8.7-9.9L-.2 1.2h7.7l5.3 7 6.1-7zm-1.3 19.4h2L6.4 3.3H4.2l13.4 17.3z" /></svg>
+  ),
+  YouTube: (
+    <svg viewBox="0 0 24 24"><path fill="#FF0000" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.3 31.3 0 0 0 0 12a31.3 31.3 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.3 31.3 0 0 0 24 12a31.3 31.3 0 0 0-.5-5.8zM9.5 15.6V8.4L15.8 12l-6.3 3.6z" /></svg>
+  ),
+  TikTok: (
+    <svg viewBox="0 0 24 24"><path fill="#1E1D21" d="M19.6 6.7a5 5 0 0 1-3.8-4.3V2h-3.4v13.7a2.9 2.9 0 1 1-2.9-2.9c.3 0 .6 0 .9.1V9.4a6.3 6.3 0 1 0 5.4 6.2V8.9a8.3 8.3 0 0 0 4.4 1.3V6.8l-.6-.1z" /></svg>
+  ),
+  Reddit: (
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="11" fill="#FF4500" />
+      <circle cx="8.6" cy="12.5" r="1.5" fill="#fff" />
+      <circle cx="15.4" cy="12.5" r="1.5" fill="#fff" />
+      <path d="M8.5 16.2c1 .9 2.2 1.3 3.5 1.3s2.5-.4 3.5-1.3" stroke="#fff" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+      <circle cx="17.8" cy="6.4" r="1.4" fill="#fff" />
+      <path d="M12.2 8.6l1-4 3.4.9" stroke="#fff" strokeWidth="1.1" fill="none" strokeLinecap="round" />
+    </svg>
+  ),
+  "News/Media": (
+    <svg viewBox="0 0 24 24"><path fill="#6C6E79" d="M22 3H2v16h20V3zm-2 14H4V5h16v12zM6 7h8v4H6V7zm10 0h2v2h-2V7zm0 4h2v2h-2v-2zM6 13h12v2H6v-2z" /></svg>
+  ),
+};
+
+function PlatformCell({ platform }: { platform: string }) {
+  return (
+    <span className="plat-cell">
+      {PLATFORM_ICONS[platform] ?? PLATFORM_ICONS["News/Media"]}
+      {platform}
+    </span>
+  );
+}
 
 /* ---------- DeepDive logo mark (provided brand asset) ---------- */
 
@@ -54,8 +113,12 @@ export function Sidebar() {
           </a>
         ))}
       </nav>
-      <a className="demo-btn" href="https://github.com/yasin29/takapay-dashboard" target="_blank" rel="noreferrer">
-        Source on GitHub <span>↗</span>
+      <a className="user-card" href="https://github.com/yasin29/takapay-dashboard" target="_blank" rel="noreferrer">
+        <LogoMark />
+        <span>
+          <b>TakaPay Pulse</b>
+          <small>Source on GitHub ↗</small>
+        </span>
       </a>
     </aside>
   );
@@ -84,10 +147,10 @@ function FilterPill({
   }, []);
   return (
     <div className="filter" ref={ref}>
-      <button className="filter-btn" onClick={() => setOpen(!open)}>
+      <button className={`filter-btn${selected.length > 0 ? " on" : ""}`} onClick={() => setOpen(!open)}>
         {label}
         {selected.length > 0 && <span className="count">{selected.length}</span>}
-        <span className="chev">{open ? "▲" : "▼"}</span>
+        <Chevron open={open} />
       </button>
       {open && (
         <div className="filter-menu">
@@ -107,12 +170,13 @@ function FilterPill({
 }
 
 export function FilterBar({
-  filters, setFilters, topics, platforms,
+  filters, setFilters, topics, platforms, updatedAt,
 }: {
   filters: Filters;
   setFilters: (f: Filters) => void;
   topics: string[];
   platforms: string[];
+  updatedAt?: string;
 }) {
   const toggle = (list: string[], v: string) =>
     list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
@@ -133,6 +197,7 @@ export function FilterBar({
         onToggle={(v) => setFilters({ ...filters, platforms: toggle(filters.platforms, v) })}
         onClear={() => setFilters({ ...filters, platforms: [] })}
       />
+      {updatedAt && <span className="updated">Data Last Updated: {updatedAt}</span>}
     </div>
   );
 }
@@ -227,7 +292,7 @@ export function StatTiles({ posts, rawCount }: { posts: Post[]; rawCount: number
 export function ActionPanel({ items, onFocus }: { items: ActionItem[]; onFocus: (topic: string) => void }) {
   return (
     <div className="card" id="attention">
-      <h3>What needs attention first</h3>
+      <h3>What needs attention first <span className="count-pill">{items.length} issues</span></h3>
       <div className="card-sub">
         Issues ranked by negative volume weighted by how much attention each post draws. Click one to see the actual posts.
       </div>
@@ -303,9 +368,9 @@ export function TopicGroups({
         );
       })}
       <div className="chart-note">
-        <span className="legend-dot" style={{ background: SENTIMENT_COLOR.positive }} /> Positive
-        <span className="legend-dot" style={{ background: SENTIMENT_COLOR.neutral }} /> Neutral
-        <span className="legend-dot" style={{ background: SENTIMENT_COLOR.negative }} /> Negative
+        <span className="legend-sq" style={{ background: SENTIMENT_COLOR.positive }} /> Positive
+        <span className="legend-sq" style={{ background: SENTIMENT_COLOR.neutral }} /> Neutral
+        <span className="legend-sq" style={{ background: SENTIMENT_COLOR.negative }} /> Negative
       </div>
     </div>
   );
@@ -316,7 +381,7 @@ export function TopicGroups({
 export function RepeatedIssues({ patterns }: { patterns: RepeatedPattern[] }) {
   return (
     <div className="card" id="repeats">
-      <h3>What people keep repeating</h3>
+      <h3>What people keep repeating <span className="count-pill">top {patterns.length} patterns</span></h3>
       <div className="card-sub">
         Near-identical wording posted again and again by different accounts (numbers, operators, and places vary; the message doesn&rsquo;t).
         High repetition means a systemic issue — or coordinated posting.
@@ -332,10 +397,7 @@ export function RepeatedIssues({ patterns }: { patterns: RepeatedPattern[] }) {
                 {fmt(p.reactions)} reactions · {fmt(p.comments)} comments
               </div>
             </div>
-            <span className="sent-badge" style={{ background: `${SENTIMENT_COLOR[p.dominant]}18`, color: SENTIMENT_COLOR[p.dominant] }}>
-              <span className="dot" style={{ background: SENTIMENT_COLOR[p.dominant] }} />
-              {cap(p.dominant)}
-            </span>
+            <SentimentChip sentiment={p.dominant} />
           </div>
         ))}
       </div>
@@ -345,35 +407,59 @@ export function RepeatedIssues({ patterns }: { patterns: RepeatedPattern[] }) {
 
 /* ---------- Posts table (receipts) ---------- */
 
+const PER_PAGE = 25;
+
+// "1 2 3 … 22 23 24" with the current page always visible, DeepDive pagination style
+function pageNumbers(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const wanted = new Set([1, 2, 3, current, current + 1, total - 2, total - 1, total]);
+  const nums = [...wanted].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  for (const [i, n] of nums.entries()) {
+    if (i > 0 && n - nums[i - 1] > 1) out.push("…");
+    out.push(n);
+  }
+  return out;
+}
+
+const COLUMNS = ["Date", "Platform", "Post Summary", "Topic", "Sentiment", "Reactions", "Comments"];
+
 export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[]; focusLabel?: string; onClearFocus?: () => void }) {
-  const [limit, setLimit] = useState(25);
-  const shown = posts.slice(0, limit);
+  const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [posts]);
+  const pages = Math.max(1, Math.ceil(posts.length / PER_PAGE));
+  const shown = posts.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   return (
     <div className="card" id="posts">
-      <h3>The posts behind the numbers {focusLabel ? `— ${focusLabel}` : ""}</h3>
-      <div className="card-sub">
-        Every chart above is backed by these records — sorted by engagement.
+      <div className="card-head-row">
+        <div>
+          <h3>
+            The posts behind the numbers <span className="count-pill">{fmt(posts.length)} {focusLabel ? `posts · ${focusLabel}` : "posts"}</span>
+          </h3>
+          <div className="card-sub">Every chart above is backed by these records — sorted by engagement.</div>
+        </div>
         {focusLabel && onClearFocus && (
-          <> <button className="filter-clear" style={{ width: "auto", display: "inline" }} onClick={onClearFocus}>Clear focus</button></>
+          <button className="btn-ghost" onClick={onClearFocus}>Clear focus ✕</button>
         )}
       </div>
       <div style={{ overflowX: "auto" }}>
         <table className="posts-table">
           <thead>
-            <tr><th>Date</th><th>Platform</th><th>Post</th><th>Topic</th><th>Sentiment</th><th>Reactions</th><th>Comments</th></tr>
+            <tr>
+              {COLUMNS.map((c) => (
+                <th key={c}>{c}<span className="sort-arr">↓</span></th>
+              ))}
+            </tr>
           </thead>
           <tbody>
             {shown.map((p) => (
               <tr key={p.id}>
                 <td style={{ whiteSpace: "nowrap" }}>Jun {parseInt(p.timestamp.slice(8, 10))}</td>
-                <td>{p.platform}</td>
+                <td><PlatformCell platform={p.platform} /></td>
                 <td className="text-cell">{p.text}</td>
                 <td style={{ whiteSpace: "nowrap" }}>{TOPIC_LABELS[p.topic] ?? p.topic}</td>
-                <td>
-                  <span className="sent-badge" style={{ background: `${SENTIMENT_COLOR[p.sentiment]}18`, color: SENTIMENT_COLOR[p.sentiment] }}>
-                    <span className="dot" style={{ background: SENTIMENT_COLOR[p.sentiment] }} />
-                    {cap(p.sentiment)}
-                  </span>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  <SentimentChip sentiment={p.sentiment} />
                   {p.corrected && <span className="corrected-chip" title="Label corrected by the pipeline's sentiment audit">fixed</span>}
                 </td>
                 <td>{fmt(p.reactions)}</td>
@@ -383,13 +469,18 @@ export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[];
           </tbody>
         </table>
       </div>
-      <div className="table-note">
-        Showing {shown.length} of {fmt(posts.length)} posts.{" "}
-        {limit < posts.length && (
-          <button className="filter-clear" style={{ width: "auto", display: "inline" }} onClick={() => setLimit(limit + 50)}>
-            Show more
-          </button>
-        )}
+      <div className="pager">
+        <button className="pg-btn" disabled={page === 1} onClick={() => setPage(page - 1)}>← Previous</button>
+        <div className="pg-nums">
+          {pageNumbers(page, pages).map((n, i) =>
+            n === "…" ? (
+              <span key={`d${i}`} className="pg-dots">…</span>
+            ) : (
+              <button key={n} className={`pg-num${n === page ? " active" : ""}`} onClick={() => setPage(n)}>{n}</button>
+            )
+          )}
+        </div>
+        <button className="pg-btn next" disabled={page === pages} onClick={() => setPage(page + 1)}>Next →</button>
       </div>
     </div>
   );

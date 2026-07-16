@@ -31,11 +31,19 @@ export const LANGUAGE_LABELS: Record<string, string> = {
 
 export const SENTIMENTS: Sentiment[] = ["positive", "neutral", "negative"];
 
-// DeepDive-style series colors (validated): positive teal, neutral purple, negative sky
+// DeepDive series colors, sampled from their product mocks: teal / purple / sky
 export const SENTIMENT_COLOR: Record<Sentiment, string> = {
-  positive: "#0d9488",
-  neutral: "#7c3aed",
-  negative: "#0ea5e9",
+  positive: "#2EA093",
+  neutral: "#602494",
+  negative: "#0FB7E6",
+};
+
+// Status-chip colors — DeepDive styles table sentiment as green/red/gray pills,
+// deliberately distinct from the chart series palette above
+export const SENTIMENT_CHIP: Record<Sentiment, { bg: string; border: string; text: string }> = {
+  positive: { bg: "#ECFDF3", border: "#ABEFC6", text: "#067647" },
+  negative: { bg: "#FEF3F2", border: "#FECDCA", text: "#B42318" },
+  neutral: { bg: "#F4F4F5", border: "#E0DFE3", text: "#56535E" },
 };
 
 export interface Filters {

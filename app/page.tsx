@@ -21,11 +21,15 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [focusTopic, setFocusTopic] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/data")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`))))
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        setUpdatedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
+      })
       .catch((e) => setError(String(e)));
   }, []);
 
@@ -87,13 +91,20 @@ export default function Page() {
               What people said about TakaPay across 7 platforms — and what to do about it.
             </div>
           </div>
-          <span className="date-chip">
-            <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z" /></svg>
-            Jun 1 – Jun 30, 2026
-          </span>
+          <div className="head-controls">
+            <span className="date-chip">
+              <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z" /></svg>
+              Jun 1 — Jun 30
+            </span>
+            <span className="cmp-label">compared to</span>
+            <span className="date-chip" title="Delta chips on the stat card compare the two halves of June">
+              First half <span style={{ fontWeight: 500, color: "var(--faint)" }}>Jun 1 - Jun 15</span>
+              <svg className="chev-sm" viewBox="0 0 20 20"><path d="M5 7.5l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
+          </div>
         </div>
 
-        <FilterBar filters={filters} setFilters={setFilters} topics={allTopics} platforms={allPlatforms} />
+        <FilterBar filters={filters} setFilters={setFilters} topics={allTopics} platforms={allPlatforms} updatedAt={updatedAt} />
 
         <StatTiles posts={filtered} rawCount={data.quality.raw_records} />
 
