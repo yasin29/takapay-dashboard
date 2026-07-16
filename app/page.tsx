@@ -5,14 +5,16 @@ import {
   DATA_RANGE, EMPTY_FILTERS, INTENTS, INTENT_COLOR, TOPIC_LABELS, actionItems, amplifyThemes, applyFilters,
   campaignWindows, competitorGaps, dailyTrend, engagement, engagementInsights, inRange, intentTrend,
   languageBreakdown, launchReadiness, platformBreakdown, queryToView, rangeLabel,
-  repeatedPatterns, sentimentSplit, shareOfVoice, topicBreakdown, viewToQuery,
-  type DateRange, type Filters, type Post, type QualityReport,
+  repeatedPatterns, SENTIMENTS, sentimentSplit, shareOfVoice, topicBreakdown, viewToQuery,
+  type DateRange, type Filters, type Post, type QualityReport, type Sentiment,
 } from "@/lib/data";
 import { IntentTrendChart, LanguageDonut, PlatformChart, SentimentDonut, TopicSentimentChart, TrendChart } from "@/components/Charts";
 import {
   ActionPanel, CAL_ICON, CampaignPlanner, CompetitorPanel, DateRangePicker, EngagementPanel, FilterBar, PostsTable,
   RepeatedIssues, Sidebar, StatTiles,
 } from "@/components/Panels";
+import { Chatbot, type ChatApplied } from "@/components/Chatbot";
+import { ExportMenu } from "@/components/ExportMenu";
 
 const EMPTY: Filters = EMPTY_FILTERS;
 
@@ -110,6 +112,27 @@ export default function Page() {
     document.getElementById("posts")?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // A chat answer's filters become the dashboard's filters — one click turns
+  // "compare failed transactions on Facebook in early June" into the same
+  // filtered view the assistant computed its numbers from.
+  const applyFromChat = (a: ChatApplied) => {
+    setFilters({
+      sentiments: a.sentiments.filter((s): s is Sentiment => (SENTIMENTS as string[]).includes(s)),
+      topics: a.topics.filter((t) => t in TOPIC_LABELS),
+      platforms: a.platforms
+        .map((raw) => allPlatforms.find((p) => p.toLowerCase() === raw.toLowerCase()))
+        .filter((p): p is string => !!p),
+      // The chat's search is word-ranked (BM25); the dashboard box is exact
+      // substring — carrying it over would zero out results, so it stays chat-only.
+      query: "",
+    });
+    if (a.dateFrom || a.dateTo) {
+      const clamp = (d: string) => (d < DATA_RANGE.a ? DATA_RANGE.a : d > DATA_RANGE.b ? DATA_RANGE.b : d);
+      setRange({ a: clamp(a.dateFrom ?? DATA_RANGE.a), b: clamp(a.dateTo ?? DATA_RANGE.b) });
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   if (error) {
     return (
       <div className="shell">
@@ -161,6 +184,7 @@ export default function Page() {
                 "None"
               )}
             </button>
+            <ExportMenu view={{ filters, range, compareRange, focusTopic }} />
           </div>
         </div>
 
@@ -249,6 +273,8 @@ export default function Page() {
           />
         </div>
       </main>
+
+      <Chatbot onApply={applyFromChat} />
     </div>
   );
 }

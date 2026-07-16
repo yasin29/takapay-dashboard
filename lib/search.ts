@@ -85,7 +85,7 @@ const pct = (n: number, total: number) => Math.round((100 * n) / Math.max(total,
 
 // Topic arguments arrive from a language model — accept keys ("failed_transaction")
 // or labels ("Failed transactions") or loose words ("failed transactions").
-const resolveTopic = (raw: string): string | null => {
+export const resolveTopic = (raw: string): string | null => {
   const t = raw.trim().toLowerCase().replace(/\s+/g, "_");
   if (t in TOPIC_LABELS) return t;
   const byLabel = Object.entries(TOPIC_LABELS).find(([, label]) => label.toLowerCase() === raw.trim().toLowerCase());
