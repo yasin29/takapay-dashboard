@@ -2,7 +2,7 @@
 
 Take-home task for Associate Product Engineer (DeepDive) at Markopolo AI.
 
-**Live demo:** _deploy in progress — URL added shortly_
+**Live demo:** https://takapay-dashboard.vercel.app
 
 **Stack:** Next.js and TypeScript end to end. Recharts for charts. The data pipeline is plain TypeScript behind an API route — no database needed at this size. The assistant uses Gemini through its OpenAI-compatible endpoint.
 
