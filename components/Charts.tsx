@@ -15,23 +15,30 @@ const TOOLTIP_STYLE = {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function SentimentDonut({ split, total }: { split: Record<Sentiment, number>; total: number }) {
-  const data = (Object.keys(split) as Sentiment[]).map((k) => ({ name: cap(k), key: k, value: split[k] }));
+  const data = (Object.keys(split) as Sentiment[]).map((k) => ({
+    name: total > 0 ? `${cap(k)} - ${((100 * split[k]) / total).toFixed(1)}%` : cap(k),
+    key: k,
+    value: split[k],
+  }));
   return (
-    <ResponsiveContainer width="100%" height={260}>
+    <ResponsiveContainer width="100%" height={270}>
       <PieChart>
+        <Legend verticalAlign="top" align="center" iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12.5 }} />
         <Pie
           isAnimationActive={false}
-          data={data} dataKey="value" nameKey="name" innerRadius={62} outerRadius={92}
+          data={data} dataKey="value" nameKey="name" innerRadius={64} outerRadius={94}
           paddingAngle={2} stroke="#ffffff" strokeWidth={2}
-          label={({ name, value }) =>
-            total > 0 ? `${name} ${Math.round((100 * (value as number)) / total)}%` : name
-          }
-          labelLine={{ stroke: "#c9ced4" }}
         >
           {data.map((d) => (
             <Cell key={d.key} fill={SENTIMENT_COLOR[d.key]} />
           ))}
         </Pie>
+        <text x="50%" y="52%" textAnchor="middle" style={{ fontSize: 24, fontWeight: 800, fill: "#111827" }}>
+          {total.toLocaleString("en-US")}
+        </text>
+        <text x="50%" y="61%" textAnchor="middle" style={{ fontSize: 11, fill: "#6b7280" }}>
+          mentions
+        </text>
         <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [`${v} posts`, n]} />
       </PieChart>
     </ResponsiveContainer>
@@ -46,7 +53,7 @@ export function TrendChart({ data }: { data: { date: string; positive: number; n
         <XAxis dataKey="date" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} interval={3} />
         <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelFormatter={(d) => `June ${d}, 2026`} formatter={(v: number, n: string) => [`${v} posts`, cap(n)]} />
-        <Legend formatter={(v) => cap(v)} iconType="plainline" wrapperStyle={{ fontSize: 12 }} />
+        <Legend verticalAlign="top" align="center" formatter={(v) => cap(v)} iconType="plainline" wrapperStyle={{ fontSize: 12.5, paddingBottom: 8 }} />
         <Line isAnimationActive={false} type="monotone" dataKey="positive" stroke={SENTIMENT_COLOR.positive} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
         <Line isAnimationActive={false} type="monotone" dataKey="neutral" stroke={SENTIMENT_COLOR.neutral} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
         <Line isAnimationActive={false} type="monotone" dataKey="negative" stroke={SENTIMENT_COLOR.negative} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
@@ -70,7 +77,7 @@ export function TopicsChart({
         <XAxis type="number" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} allowDecimals={false} />
         <YAxis type="category" dataKey="label" width={140} tick={{ ...AXIS, fill: "#374151" }} tickLine={false} axisLine={false} />
         <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [`${v} posts`, cap(n)]} cursor={{ fill: "#f3f7f7" }} />
-        <Legend formatter={(v) => cap(v)} wrapperStyle={{ fontSize: 12 }} />
+        <Legend verticalAlign="top" align="center" formatter={(v) => cap(v)} iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12.5, paddingBottom: 8 }} />
         <Bar isAnimationActive={false} dataKey="positive" stackId="s" fill={SENTIMENT_COLOR.positive} stroke="#fff" strokeWidth={2}
           onClick={(d: { topic?: string }) => d.topic && onTopicClick?.(d.topic)} cursor="pointer" />
         <Bar isAnimationActive={false} dataKey="neutral" stackId="s" fill={SENTIMENT_COLOR.neutral} stroke="#fff" strokeWidth={2}
@@ -92,7 +99,7 @@ export function PlatformChart({ data }: { data: { platform: string; positive: nu
         <XAxis dataKey="platform" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} interval={0} />
         <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
         <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [`${v} posts`, cap(n)]} cursor={{ fill: "#f3f7f7" }} />
-        <Legend formatter={(v) => cap(v)} wrapperStyle={{ fontSize: 12 }} />
+        <Legend verticalAlign="top" align="center" formatter={(v) => cap(v)} iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12.5, paddingBottom: 8 }} />
         <Bar isAnimationActive={false} dataKey="positive" stackId="s" fill={SENTIMENT_COLOR.positive} stroke="#fff" strokeWidth={2} />
         <Bar isAnimationActive={false} dataKey="neutral" stackId="s" fill={SENTIMENT_COLOR.neutral} stroke="#fff" strokeWidth={2} />
         <Bar isAnimationActive={false} dataKey="negative" stackId="s" fill={SENTIMENT_COLOR.negative} stroke="#fff" strokeWidth={2} radius={[4, 4, 0, 0]}>
@@ -106,17 +113,20 @@ export function PlatformChart({ data }: { data: { platform: string; positive: nu
 const LANG_COLORS = ["#0d9488", "#7c3aed", "#0ea5e9"];
 
 export function LanguageDonut({ data, total }: { data: { lang: string; n: number }[]; total: number }) {
+  const rows = data.map((d) => ({
+    ...d,
+    label: total > 0 ? `${d.lang} - ${((100 * d.n) / total).toFixed(1)}%` : d.lang,
+  }));
   return (
     <ResponsiveContainer width="100%" height={250}>
       <PieChart>
+        <Legend verticalAlign="top" align="center" iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12.5 }} />
         <Pie
           isAnimationActive={false}
-          data={data} dataKey="n" nameKey="lang" innerRadius={56} outerRadius={86}
+          data={rows} dataKey="n" nameKey="label" innerRadius={56} outerRadius={84}
           paddingAngle={2} stroke="#ffffff" strokeWidth={2}
-          label={({ lang, n }) => (total > 0 ? `${lang} ${Math.round((100 * (n as number)) / total)}%` : lang)}
-          labelLine={{ stroke: "#c9ced4" }}
         >
-          {data.map((d, i) => (
+          {rows.map((d, i) => (
             <Cell key={d.lang} fill={LANG_COLORS[i % LANG_COLORS.length]} />
           ))}
         </Pie>
