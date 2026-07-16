@@ -85,6 +85,31 @@ export function PlatformChart({ data }: { data: { platform: string; positive: nu
   );
 }
 
+/* Horizontal stacked bars for one topic group — length = post count, honest scale */
+export function TopicGroupBars({
+  data, onFocus,
+}: {
+  data: { topic: string; label: string; positive: number; neutral: number; negative: number; total: number }[];
+  onFocus: (topic: string) => void;
+}) {
+  const height = data.length * 40 + 36;
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 34, left: 12, bottom: 0 }} barSize={16}>
+        <CartesianGrid stroke={GRID} horizontal={false} />
+        <XAxis type="number" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} allowDecimals={false} />
+        <YAxis type="category" dataKey="label" tick={{ ...AXIS, fontSize: 12, fill: "#47454e" }} tickLine={false} axisLine={false} width={128} />
+        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [`${v} posts`, cap(n)]} cursor={{ fill: "#f4f4f5" }} />
+        <Bar isAnimationActive={false} dataKey="positive" stackId="s" fill={SENTIMENT_COLOR.positive} stroke="#fff" strokeWidth={1} onClick={(d) => onFocus(d.topic)} cursor="pointer" />
+        <Bar isAnimationActive={false} dataKey="neutral" stackId="s" fill={SENTIMENT_COLOR.neutral} stroke="#fff" strokeWidth={1} onClick={(d) => onFocus(d.topic)} cursor="pointer" />
+        <Bar isAnimationActive={false} dataKey="negative" stackId="s" fill={SENTIMENT_COLOR.negative} stroke="#fff" strokeWidth={1} radius={[0, 4, 4, 0]} onClick={(d) => onFocus(d.topic)} cursor="pointer">
+          <LabelList dataKey="total" position="right" style={{ fontSize: 11, fontWeight: 700, fill: "#56535e" }} />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 const LANG_COLORS = ["#2EA093", "#602494", "#0FB7E6"];
 
 export function LanguageDonut({ data, total }: { data: { lang: string; n: number }[]; total: number }) {

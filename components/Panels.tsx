@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TopicGroupBars } from "@/components/Charts";
 import {
   SENTIMENT_CHIP, SENTIMENT_COLOR, SENTIMENTS, TOPIC_GROUPS, TOPIC_LABELS, engagement,
   type ActionItem, type Filters, type Post, type RepeatedPattern, type Sentiment,
@@ -323,12 +324,6 @@ interface TopicRow {
   topic: string; positive: number; neutral: number; negative: number; total: number;
 }
 
-// Severity cue for a topic: how much of it is negative
-function SeverityChip({ negShare }: { negShare: number }) {
-  const level = negShare >= 60 ? "high" : negShare >= 25 ? "mid" : "low";
-  return <span className={`sev-chip ${level}`}>{negShare}% neg</span>;
-}
-
 export function TopicGroups({
   rows, onFocus,
 }: {
@@ -336,13 +331,12 @@ export function TopicGroups({
   onFocus: (topic: string) => void;
 }) {
   const byTopic = new Map(rows.map((r) => [r.topic, r]));
-  const grandTotal = Math.max(1, rows.reduce((s, r) => s + r.total, 0));
   return (
     <div className="card" id="topics">
       <div className="card-head-row">
         <div>
           <h3>What people talk about</h3>
-          <div className="card-sub">The conversation, structured the way a brand team owns it — click a row to see the posts</div>
+          <div className="card-sub">The conversation, structured the way a brand team owns it — click a bar to see the posts</div>
         </div>
         <div className="chart-note" style={{ marginTop: 4, whiteSpace: "nowrap" }}>
           <span className="legend-sq" style={{ background: SENTIMENT_COLOR.positive }} /> Positive
@@ -350,55 +344,30 @@ export function TopicGroups({
           <span className="legend-sq" style={{ background: SENTIMENT_COLOR.negative }} /> Negative
         </div>
       </div>
-      {TOPIC_GROUPS.map((g) => {
-        const present = g.topics.map((t) => byTopic.get(t)).filter((r): r is TopicRow => !!r && r.total > 0);
-        if (present.length === 0) return null;
-        const total = present.reduce((s, r) => s + r.total, 0);
-        const negTotal = present.reduce((s, r) => s + r.negative, 0);
-        return (
-          <div className="tgroup" key={g.name}>
-            <div className="tgroup-head">
-              <span>{g.name}</span>
-              <span className="tgroup-meta">
-                {fmt(total)} posts · {Math.round((100 * negTotal) / Math.max(total, 1))}% negative
-              </span>
+      <div className="tgroup-grid">
+        {TOPIC_GROUPS.map((g) => {
+          const present = g.topics
+            .map((t) => byTopic.get(t))
+            .filter((r): r is TopicRow => !!r && r.total > 0);
+          if (present.length === 0) return null;
+          const total = present.reduce((s, r) => s + r.total, 0);
+          const negTotal = present.reduce((s, r) => s + r.negative, 0);
+          const data = [...present]
+            .sort((a, b) => b.total - a.total)
+            .map((r) => ({ ...r, label: TOPIC_LABELS[r.topic] ?? r.topic }));
+          return (
+            <div className="tgroup" key={g.name}>
+              <div className="tgroup-head">
+                <span>{g.name}</span>
+                <span className="tgroup-meta">
+                  {fmt(total)} posts · {Math.round((100 * negTotal) / Math.max(total, 1))}% negative
+                </span>
+              </div>
+              <TopicGroupBars data={data} onFocus={onFocus} />
             </div>
-            {[...present].sort((a, b) => b.total - a.total).map((r) => {
-              const negShare = Math.round((100 * r.negative) / r.total);
-              return (
-                <div className="trow" key={r.topic} onClick={() => onFocus(r.topic)} title="See the posts behind this row">
-                  <div className="trow-count">
-                    {fmt(r.total)}
-                    <small>posts</small>
-                  </div>
-                  <div className="trow-label">
-                    {TOPIC_LABELS[r.topic] ?? r.topic}
-                    <div className="trow-sub">{Math.round((100 * r.total) / grandTotal)}% of feed</div>
-                  </div>
-                  <div className="trow-bar">
-                    {SENTIMENTS.filter((sn) => r[sn] > 0).map((sn) => {
-                      const share = (100 * r[sn]) / r.total;
-                      return (
-                        <span
-                          key={sn}
-                          className="seg"
-                          style={{ width: `${share}%`, background: SENTIMENT_COLOR[sn] }}
-                          title={`${cap(sn)}: ${r[sn]} posts (${Math.round(share)}%)`}
-                        >
-                          {share >= 14 && share < 100 && <span className="seg-label">{Math.round(share)}%</span>}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div className="trow-chip">
-                    <SeverityChip negShare={negShare} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -101,8 +101,7 @@ export const TOPIC_GROUPS: { name: string; topics: string[] }[] = [
   { name: "Transactions & money movement", topics: ["failed_transaction", "send_money", "bill_payment", "recharge", "charges_fees"] },
   { name: "App & website", topics: ["app_crash", "login_otp", "app_experience", "feature_query"] },
   { name: "Customer care & agents", topics: ["customer_care", "agent_network"] },
-  { name: "Offers & news", topics: ["cashback_offer", "product_news"] },
-  { name: "Competitor", topics: ["competitor"] },
+  { name: "Offers & news", topics: ["cashback_offer", "product_news", "competitor"] },
 ];
 
 /* ---------- Repeated complaints — near-identical wording across accounts ----------
