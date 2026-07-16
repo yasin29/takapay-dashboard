@@ -62,35 +62,6 @@ export function TrendChart({ data }: { data: { date: string; positive: number; n
   );
 }
 
-export function TopicsChart({
-  data, onTopicClick,
-}: {
-  data: { topic: string; positive: number; neutral: number; negative: number; total: number }[];
-  onTopicClick?: (topic: string) => void;
-}) {
-  const rows = data.map((d) => ({ ...d, label: TOPIC_LABELS[d.topic] ?? d.topic }));
-  const height = Math.max(240, rows.length * 34);
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 40, left: 30, bottom: 0 }} barCategoryGap={7}>
-        <CartesianGrid stroke={GRID} horizontal={false} />
-        <XAxis type="number" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} allowDecimals={false} />
-        <YAxis type="category" dataKey="label" width={140} tick={{ ...AXIS, fill: "#374151" }} tickLine={false} axisLine={false} />
-        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [`${v} posts`, cap(n)]} cursor={{ fill: "#f3f7f7" }} />
-        <Legend verticalAlign="top" align="center" formatter={(v) => cap(v)} iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12.5, paddingBottom: 8 }} />
-        <Bar isAnimationActive={false} dataKey="positive" stackId="s" fill={SENTIMENT_COLOR.positive} stroke="#fff" strokeWidth={2}
-          onClick={(d: { topic?: string }) => d.topic && onTopicClick?.(d.topic)} cursor="pointer" />
-        <Bar isAnimationActive={false} dataKey="neutral" stackId="s" fill={SENTIMENT_COLOR.neutral} stroke="#fff" strokeWidth={2}
-          onClick={(d: { topic?: string }) => d.topic && onTopicClick?.(d.topic)} cursor="pointer" />
-        <Bar isAnimationActive={false} dataKey="negative" stackId="s" fill={SENTIMENT_COLOR.negative} stroke="#fff" strokeWidth={2} radius={[0, 4, 4, 0]}
-          onClick={(d: { topic?: string }) => d.topic && onTopicClick?.(d.topic)} cursor="pointer">
-          <LabelList dataKey="total" position="right" style={{ fontSize: 11, fill: "#6b7280" }} />
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
 export function PlatformChart({ data }: { data: { platform: string; positive: number; neutral: number; negative: number; total: number }[] }) {
   return (
     <ResponsiveContainer width="100%" height={250}>

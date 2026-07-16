@@ -74,15 +74,80 @@ export function dailyTrend(posts: Post[]) {
 }
 
 export function topicBreakdown(posts: Post[]) {
-  const t = new Map<string, { topic: string; positive: number; neutral: number; negative: number; total: number; eng: number }>();
+  const t = new Map<string, { topic: string; positive: number; neutral: number; negative: number; total: number; eng: number; reactions: number; comments: number }>();
   for (const p of posts) {
-    if (!t.has(p.topic)) t.set(p.topic, { topic: p.topic, positive: 0, neutral: 0, negative: 0, total: 0, eng: 0 });
+    if (!t.has(p.topic)) t.set(p.topic, { topic: p.topic, positive: 0, neutral: 0, negative: 0, total: 0, eng: 0, reactions: 0, comments: 0 });
     const row = t.get(p.topic)!;
     row[p.sentiment]++;
     row.total++;
     row.eng += engagement(p);
+    row.reactions += p.reactions;
+    row.comments += p.comments;
   }
   return [...t.values()].sort((a, b) => b.total - a.total);
+}
+
+/* ---------- Topic groups — how a brand manager slices the conversation ---------- */
+
+export const TOPIC_GROUPS: { name: string; topics: string[] }[] = [
+  { name: "Transactions & money movement", topics: ["failed_transaction", "send_money", "bill_payment", "recharge", "charges_fees"] },
+  { name: "App & website", topics: ["app_crash", "login_otp", "app_experience", "feature_query"] },
+  { name: "Customer care & agents", topics: ["customer_care", "agent_network"] },
+  { name: "Offers & news", topics: ["cashback_offer", "product_news"] },
+  { name: "Competitor", topics: ["competitor"] },
+];
+
+/* ---------- Repeated complaints — near-identical wording across accounts ----------
+   Numbers, operator names, family words, and area names are template slots;
+   masking them exposes how many posts are the same message written again
+   and again. High repetition = systemic issue (or seeded posting). */
+
+export interface RepeatedPattern {
+  sample: string;
+  count: number;
+  topic: string;
+  dominant: Sentiment;
+  dominantShare: number;
+  reactions: number;
+  comments: number;
+}
+
+const TEMPLATE_TOKENS = /\b(robi|airtel|banglalink|teletalk|grameenphone|ma|baba|bhai|bon|friend|colleague|landlord|amar|motijheel|mohakhali|dhanmondi|uttara|mirpur|gulshan|banani|khulna|chittagong|sylhet|farmgate|bashundhara)\b/gi;
+const BANGLA_TOKENS = /মা|বাবা|ভাই|বোন|আমার|bon|bhai/g;
+
+const fingerprint = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[\d০-৯]+/g, "#")
+    .replace(TEMPLATE_TOKENS, "*")
+    .replace(BANGLA_TOKENS, "*")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export function repeatedPatterns(posts: Post[], minCount = 4): RepeatedPattern[] {
+  const groups = new Map<string, Post[]>();
+  for (const p of posts) {
+    const fp = fingerprint(p.text);
+    if (!groups.has(fp)) groups.set(fp, []);
+    groups.get(fp)!.push(p);
+  }
+  const out: RepeatedPattern[] = [];
+  for (const members of Array.from(groups.values())) {
+    if (members.length < minCount) continue;
+    const split = sentimentSplit(members);
+    const dominant = (Object.keys(split) as Sentiment[]).sort((a, b) => split[b] - split[a])[0];
+    const sample = members.reduce((a, b) => (a.text.length <= b.text.length ? a : b));
+    out.push({
+      sample: sample.text,
+      count: members.length,
+      topic: sample.topic,
+      dominant,
+      dominantShare: Math.round((100 * split[dominant]) / members.length),
+      reactions: members.reduce((s, p) => s + p.reactions, 0),
+      comments: members.reduce((s, p) => s + p.comments, 0),
+    });
+  }
+  return out.sort((a, b) => b.count - a.count || b.reactions - a.reactions).slice(0, 6);
 }
 
 export function platformBreakdown(posts: Post[]) {
@@ -113,7 +178,8 @@ export interface ActionItem {
   kind: "fix" | "watch";
   total: number;
   negShare: number;
-  eng: number;
+  reactions: number;
+  comments: number;
   score: number;
   note: string;
 }
@@ -140,7 +206,8 @@ export function actionItems(posts: Post[]): ActionItem[] {
       kind: (r.topic === "competitor" ? "watch" : "fix") as "fix" | "watch",
       total: r.total,
       negShare: Math.round((100 * r.negative) / r.total),
-      eng: r.eng,
+      reactions: r.reactions,
+      comments: r.comments,
       score: r.negative * (r.eng / Math.max(r.total, 1)),
       note: ACTION_NOTES[r.topic],
     }));

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  SENTIMENT_COLOR, SENTIMENTS, TOPIC_LABELS, engagement,
-  type ActionItem, type Filters, type Post, type QualityReport, type Sentiment,
+  SENTIMENT_COLOR, SENTIMENTS, TOPIC_GROUPS, TOPIC_LABELS, engagement,
+  type ActionItem, type Filters, type Post, type RepeatedPattern, type Sentiment,
 } from "@/lib/data";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -31,8 +31,8 @@ const NAV: [string, string, string][] = [
   ["#attention", "Risk Monitoring", "M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z"],
   ["#sentiment", "Sentiment", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-3.5 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM12 17.5c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"],
   ["#topics", "Topics", "M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"],
+  ["#repeats", "Repeated Issues", "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"],
   ["#platforms", "Social Listening", "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 1 0-3-3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65a2.92 2.92 0 1 0 2.92-2.92z"],
-  ["#quality", "Data Quality", "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"],
   ["#posts", "Content", "M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"],
 ];
 
@@ -144,8 +144,8 @@ export function FilterBar({
 const TILE_ICONS: Record<string, string> = {
   mentions: "M12 2a10 10 0 1 0 3.54 19.36c.46-.17.68-.7.48-1.15-.19-.43-.69-.63-1.13-.47A8 8 0 1 1 20 12v1a1.5 1.5 0 0 1-3 0v-1a5 5 0 1 0-1.46 3.54A3.5 3.5 0 0 0 22 13v-1A10 10 0 0 0 12 2zm0 13a3 3 0 1 1 0-6 3 3 0 0 1 0 6z",
   negative: "M16 18l2.29-2.29-4.88-4.88-4 4L2 7.41 3.41 6l6 6 4-4 6.3 6.29L22 12v6h-6z",
-  positive: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z",
-  engagement: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
+  reactions: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
+  comments: "M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z",
 };
 
 function halfSplit(posts: Post[]) {
@@ -168,8 +168,8 @@ function Delta({ pct, goodWhenUp }: { pct: number | null; goodWhenUp: boolean })
 export function StatTiles({ posts, rawCount }: { posts: Post[]; rawCount: number }) {
   const total = posts.length;
   const neg = posts.filter((p) => p.sentiment === "negative").length;
-  const pos = posts.filter((p) => p.sentiment === "positive").length;
-  const eng = posts.reduce((s, p) => s + engagement(p), 0);
+  const reactions = posts.reduce((s, p) => s + p.reactions, 0);
+  const comments = posts.reduce((s, p) => s + p.comments, 0);
   const { h1, h2 } = halfSplit(posts);
   const growth = (a: number, b: number) => (a > 0 ? ((b - a) / a) * 100 : null);
   const shareDelta = (sel: (p: Post) => boolean) => {
@@ -178,6 +178,7 @@ export function StatTiles({ posts, rawCount }: { posts: Post[]; rawCount: number
     const s2 = (100 * h2.filter(sel).length) / h2.length;
     return s2 - s1;
   };
+  const sum = (list: Post[], f: (p: Post) => number) => list.reduce((s, p) => s + f(p), 0);
 
   const tiles = [
     {
@@ -191,14 +192,14 @@ export function StatTiles({ posts, rawCount }: { posts: Post[]; rawCount: number
       note: `${fmt(neg)} negative posts`,
     },
     {
-      icon: TILE_ICONS.positive, label: "Positive Share", value: total ? `${Math.round((100 * pos) / total)}%` : "—",
-      delta: shareDelta((p) => p.sentiment === "positive"), goodWhenUp: true,
-      note: `${fmt(pos)} positive posts`,
+      icon: TILE_ICONS.reactions, label: "Reactions", value: fmt(reactions),
+      delta: growth(sum(h1, (p) => p.reactions), sum(h2, (p) => p.reactions)), goodWhenUp: true,
+      note: "likes and reactions on posts",
     },
     {
-      icon: TILE_ICONS.engagement, label: "Total Engagement", value: fmt(eng),
-      delta: growth(h1.reduce((s, p) => s + engagement(p), 0), h2.reduce((s, p) => s + engagement(p), 0)), goodWhenUp: true,
-      note: "reactions and comments",
+      icon: TILE_ICONS.comments, label: "Comments", value: fmt(comments),
+      delta: growth(sum(h1, (p) => p.comments), sum(h2, (p) => p.comments)), goodWhenUp: true,
+      note: "replies and discussion",
     },
   ];
 
@@ -240,7 +241,7 @@ export function ActionPanel({ items, onFocus }: { items: ActionItem[]; onFocus: 
                 <span className={`badge ${a.kind}`}>{a.kind === "fix" ? "! act now" : "~ watch"}</span>
               </div>
               <div className="action-stats">
-                <b>{fmt(a.total)}</b> posts · <b>{a.negShare}%</b> negative · <b>{fmt(a.eng)}</b> engagement
+                <b>{fmt(a.total)}</b> posts · <b>{a.negShare}%</b> negative · <b>{fmt(a.reactions)}</b> reactions · <b>{fmt(a.comments)}</b> comments
               </div>
               <div className="action-note">{a.note}</div>
             </div>
@@ -251,43 +252,92 @@ export function ActionPanel({ items, onFocus }: { items: ActionItem[]; onFocus: 
   );
 }
 
-/* ---------- Data quality card ---------- */
+/* ---------- Topic groups — the conversation, structured ---------- */
 
-export function QualityCard({ quality }: { quality: QualityReport }) {
+interface TopicRow {
+  topic: string; positive: number; neutral: number; negative: number; total: number;
+}
+
+export function TopicGroups({
+  rows, onFocus,
+}: {
+  rows: TopicRow[];
+  onFocus: (topic: string) => void;
+}) {
+  const byTopic = new Map(rows.map((r) => [r.topic, r]));
+  const maxTotal = Math.max(1, ...rows.map((r) => r.total));
   return (
-    <div className="card" id="quality">
-      <h3>Data quality — what the numbers above do not include</h3>
+    <div className="card" id="topics">
+      <h3>What people talk about</h3>
+      <div className="card-sub">The conversation, structured the way a brand team owns it — click a row to see the posts</div>
+      {TOPIC_GROUPS.map((g) => {
+        const present = g.topics.map((t) => byTopic.get(t)).filter((r): r is TopicRow => !!r && r.total > 0);
+        if (present.length === 0) return null;
+        const total = present.reduce((s, r) => s + r.total, 0);
+        const negTotal = present.reduce((s, r) => s + r.negative, 0);
+        return (
+          <div className="tgroup" key={g.name}>
+            <div className="tgroup-head">
+              <span>{g.name}</span>
+              <span className="tgroup-meta">
+                {fmt(total)} posts · {Math.round((100 * negTotal) / Math.max(total, 1))}% negative
+              </span>
+            </div>
+            {present.map((r) => (
+              <div className="trow" key={r.topic} onClick={() => onFocus(r.topic)} title="See the posts behind this row">
+                <div className="trow-label">{TOPIC_LABELS[r.topic] ?? r.topic}</div>
+                <div className="trow-bar">
+                  {SENTIMENTS.filter((sn) => r[sn] > 0).map((sn) => (
+                    <span
+                      key={sn}
+                      className="seg"
+                      style={{ width: `${(100 * r[sn]) / maxTotal}%`, background: SENTIMENT_COLOR[sn] }}
+                      title={`${cap(sn)}: ${r[sn]}`}
+                    />
+                  ))}
+                </div>
+                <div className="trow-count">{r.total}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+      <div className="chart-note">
+        <span className="legend-dot" style={{ background: SENTIMENT_COLOR.positive }} /> Positive
+        <span className="legend-dot" style={{ background: SENTIMENT_COLOR.neutral }} /> Neutral
+        <span className="legend-dot" style={{ background: SENTIMENT_COLOR.negative }} /> Negative
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Repeated issues — the same message, again and again ---------- */
+
+export function RepeatedIssues({ patterns }: { patterns: RepeatedPattern[] }) {
+  return (
+    <div className="card" id="repeats">
+      <h3>What people keep repeating</h3>
       <div className="card-sub">
-        The raw feed is messy. Every exclusion and correction is rule-based, logged, and listed here — nothing was changed silently.
+        Near-identical wording posted again and again by different accounts (numbers, operators, and places vary; the message doesn&rsquo;t).
+        High repetition means a systemic issue — or coordinated posting.
       </div>
-      <div className="quality-flow">
-        <span className="q-num">{fmt(quality.raw_records)}</span>
-        <span className="q-arrow">raw records →</span>
-        <span className="q-num">{fmt(quality.counted_records)}</span>
-        <span className="q-arrow">counted</span>
-        <span className="q-chip">{quality.excluded_off_topic} off-topic</span>
-        <span className="q-chip">{quality.removed_duplicates} duplicates</span>
-        <span className="q-chip">{quality.relabeled_sentiment} re-labeled</span>
-      </div>
-      <div className="quality-rows">
-        <details>
-          <summary><span className="q-count">{quality.excluded_off_topic}</span> off-topic posts excluded — flagged as brand mentions, but about traffic, food, or exams</summary>
-          <ul>{quality.off_topic.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] {r.text}</li>)}
-            {quality.off_topic.length > 6 && <li>… and {quality.off_topic.length - 6} more (full list at /api/data)</li>}
-          </ul>
-        </details>
-        <details>
-          <summary><span className="q-count">{quality.removed_duplicates}</span> exact duplicates removed — same text posted by different authors</summary>
-          <ul>{quality.duplicates.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] duplicate of [{r.duplicate_of}]: {r.text}</li>)}
-            {quality.duplicates.length > 6 && <li>… and {quality.duplicates.length - 6} more</li>}
-          </ul>
-        </details>
-        <details>
-          <summary><span className="q-count">{quality.relabeled_sentiment}</span> sentiment labels corrected — text plainly contradicted the label and its score, in English and in Bangla</summary>
-          <ul>{quality.relabeled.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] {r.from} → {r.to} (evidence: {r.evidence.join(", ")}): {r.text}</li>)}
-            {quality.relabeled.length > 6 && <li>… and {quality.relabeled.length - 6} more</li>}
-          </ul>
-        </details>
+      <div className="rep-list">
+        {patterns.map((p) => (
+          <div className="rep-item" key={p.sample}>
+            <div className="rep-count">{p.count}×</div>
+            <div className="rep-body">
+              <div className="rep-text">&ldquo;{p.sample}&rdquo;</div>
+              <div className="rep-meta">
+                {TOPIC_LABELS[p.topic] ?? p.topic} · {p.dominantShare}% {p.dominant} ·{" "}
+                {fmt(p.reactions)} reactions · {fmt(p.comments)} comments
+              </div>
+            </div>
+            <span className="sent-badge" style={{ background: `${SENTIMENT_COLOR[p.dominant]}18`, color: SENTIMENT_COLOR[p.dominant] }}>
+              <span className="dot" style={{ background: SENTIMENT_COLOR[p.dominant] }} />
+              {cap(p.dominant)}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -310,7 +360,7 @@ export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[];
       <div style={{ overflowX: "auto" }}>
         <table className="posts-table">
           <thead>
-            <tr><th>Date</th><th>Platform</th><th>Post</th><th>Topic</th><th>Sentiment</th><th>Engage</th></tr>
+            <tr><th>Date</th><th>Platform</th><th>Post</th><th>Topic</th><th>Sentiment</th><th>Reactions</th><th>Comments</th></tr>
           </thead>
           <tbody>
             {shown.map((p) => (
@@ -324,9 +374,10 @@ export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[];
                     <span className="dot" style={{ background: SENTIMENT_COLOR[p.sentiment] }} />
                     {cap(p.sentiment)}
                   </span>
-                  {p.corrected && <span className="corrected-chip" title="Label corrected by the cleaning rules — see Data quality">fixed</span>}
+                  {p.corrected && <span className="corrected-chip" title="Label corrected by the pipeline's sentiment audit">fixed</span>}
                 </td>
-                <td>{fmt(engagement(p))}</td>
+                <td>{fmt(p.reactions)}</td>
+                <td>{fmt(p.comments)}</td>
               </tr>
             ))}
           </tbody>

@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   TOPIC_LABELS, actionItems, applyFilters, dailyTrend, engagement,
-  languageBreakdown, platformBreakdown, sentimentSplit, topicBreakdown,
+  languageBreakdown, platformBreakdown, repeatedPatterns, sentimentSplit, topicBreakdown,
   type Filters, type Post, type QualityReport,
 } from "@/lib/data";
-import { LanguageDonut, PlatformChart, SentimentDonut, TopicsChart, TrendChart } from "@/components/Charts";
-import { ActionPanel, FilterBar, PostsTable, QualityCard, Sidebar, StatTiles } from "@/components/Panels";
+import { LanguageDonut, PlatformChart, SentimentDonut, TrendChart } from "@/components/Charts";
+import { ActionPanel, FilterBar, PostsTable, RepeatedIssues, Sidebar, StatTiles, TopicGroups } from "@/components/Panels";
 
 const EMPTY: Filters = { sentiments: [], topics: [], platforms: [] };
 
@@ -40,6 +40,7 @@ export default function Page() {
   const platforms = useMemo(() => platformBreakdown(filtered), [filtered]);
   const languages = useMemo(() => languageBreakdown(filtered), [filtered]);
   const actions = useMemo(() => actionItems(posts), [posts]);
+  const repeats = useMemo(() => repeatedPatterns(filtered), [filtered]);
 
   const tablePosts = useMemo(() => {
     const base = focusTopic ? filtered.filter((p) => p.topic === focusTopic) : filtered;
@@ -111,10 +112,10 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="card" id="topics">
-          <h3>What people talk about</h3>
-          <div className="card-sub">Topics ranked by volume, split by sentiment — click a bar to see the posts</div>
-          <TopicsChart data={topics} onTopicClick={focusAndScroll} />
+        <TopicGroups rows={topics} onFocus={focusAndScroll} />
+
+        <div style={{ marginTop: 16 }}>
+          <RepeatedIssues patterns={repeats} />
         </div>
 
         <div className="grid two-even" id="platforms" style={{ marginTop: 16 }}>
@@ -132,8 +133,6 @@ export default function Page() {
             </div>
           </div>
         </div>
-
-        <QualityCard quality={data.quality} />
 
         <div style={{ marginTop: 16 }}>
           <PostsTable
