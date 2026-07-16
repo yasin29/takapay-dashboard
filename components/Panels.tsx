@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  QUALITY, SENTIMENT_COLOR, SENTIMENTS, TOPIC_LABELS, engagement,
-  type ActionItem, type Filters, type Post, type Sentiment,
+  SENTIMENT_COLOR, SENTIMENTS, TOPIC_LABELS, engagement,
+  type ActionItem, type Filters, type Post, type QualityReport, type Sentiment,
 } from "@/lib/data";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -165,7 +165,7 @@ function Delta({ pct, goodWhenUp }: { pct: number | null; goodWhenUp: boolean })
   );
 }
 
-export function StatTiles({ posts }: { posts: Post[] }) {
+export function StatTiles({ posts, rawCount }: { posts: Post[]; rawCount: number }) {
   const total = posts.length;
   const neg = posts.filter((p) => p.sentiment === "negative").length;
   const pos = posts.filter((p) => p.sentiment === "positive").length;
@@ -183,7 +183,7 @@ export function StatTiles({ posts }: { posts: Post[] }) {
     {
       icon: TILE_ICONS.mentions, label: "Brand Mentions Counted", value: fmt(total),
       delta: growth(h1.length, h2.length), goodWhenUp: true,
-      note: `${fmt(QUALITY.raw_records)} raw, noise removed`,
+      note: `${fmt(rawCount)} raw, noise removed`,
     },
     {
       icon: TILE_ICONS.negative, label: "Negative Share", value: total ? `${Math.round((100 * neg) / total)}%` : "—",
@@ -253,7 +253,7 @@ export function ActionPanel({ items, onFocus }: { items: ActionItem[]; onFocus: 
 
 /* ---------- Data quality card ---------- */
 
-export function QualityCard() {
+export function QualityCard({ quality }: { quality: QualityReport }) {
   return (
     <div className="card" id="quality">
       <h3>Data quality — what the numbers above do not include</h3>
@@ -261,31 +261,31 @@ export function QualityCard() {
         The raw feed is messy. Every exclusion and correction is rule-based, logged, and listed here — nothing was changed silently.
       </div>
       <div className="quality-flow">
-        <span className="q-num">{fmt(QUALITY.raw_records)}</span>
+        <span className="q-num">{fmt(quality.raw_records)}</span>
         <span className="q-arrow">raw records →</span>
-        <span className="q-num">{fmt(QUALITY.counted_records)}</span>
+        <span className="q-num">{fmt(quality.counted_records)}</span>
         <span className="q-arrow">counted</span>
-        <span className="q-chip">{QUALITY.excluded_off_topic} off-topic</span>
-        <span className="q-chip">{QUALITY.removed_duplicates} duplicates</span>
-        <span className="q-chip">{QUALITY.relabeled_sentiment} re-labeled</span>
+        <span className="q-chip">{quality.excluded_off_topic} off-topic</span>
+        <span className="q-chip">{quality.removed_duplicates} duplicates</span>
+        <span className="q-chip">{quality.relabeled_sentiment} re-labeled</span>
       </div>
       <div className="quality-rows">
         <details>
-          <summary><span className="q-count">{QUALITY.excluded_off_topic}</span> off-topic posts excluded — flagged as brand mentions, but about traffic, food, or exams</summary>
-          <ul>{QUALITY.off_topic.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] {r.text}</li>)}
-            {QUALITY.off_topic.length > 6 && <li>… and {QUALITY.off_topic.length - 6} more (see quality-report.json)</li>}
+          <summary><span className="q-count">{quality.excluded_off_topic}</span> off-topic posts excluded — flagged as brand mentions, but about traffic, food, or exams</summary>
+          <ul>{quality.off_topic.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] {r.text}</li>)}
+            {quality.off_topic.length > 6 && <li>… and {quality.off_topic.length - 6} more (full list at /api/data)</li>}
           </ul>
         </details>
         <details>
-          <summary><span className="q-count">{QUALITY.removed_duplicates}</span> exact duplicates removed — same text posted by different authors</summary>
-          <ul>{QUALITY.duplicates.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] duplicate of [{r.duplicate_of}]: {r.text}</li>)}
-            {QUALITY.duplicates.length > 6 && <li>… and {QUALITY.duplicates.length - 6} more</li>}
+          <summary><span className="q-count">{quality.removed_duplicates}</span> exact duplicates removed — same text posted by different authors</summary>
+          <ul>{quality.duplicates.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] duplicate of [{r.duplicate_of}]: {r.text}</li>)}
+            {quality.duplicates.length > 6 && <li>… and {quality.duplicates.length - 6} more</li>}
           </ul>
         </details>
         <details>
-          <summary><span className="q-count">{QUALITY.relabeled_sentiment}</span> sentiment labels corrected — text plainly contradicted the label and its score, in English and in Bangla</summary>
-          <ul>{QUALITY.relabeled.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] {r.from} → {r.to} (evidence: {r.evidence.join(", ")}): {r.text}</li>)}
-            {QUALITY.relabeled.length > 6 && <li>… and {QUALITY.relabeled.length - 6} more</li>}
+          <summary><span className="q-count">{quality.relabeled_sentiment}</span> sentiment labels corrected — text plainly contradicted the label and its score, in English and in Bangla</summary>
+          <ul>{quality.relabeled.slice(0, 6).map((r) => <li key={r.id}>[{r.id}] {r.from} → {r.to} (evidence: {r.evidence.join(", ")}): {r.text}</li>)}
+            {quality.relabeled.length > 6 && <li>… and {quality.relabeled.length - 6} more</li>}
           </ul>
         </details>
       </div>

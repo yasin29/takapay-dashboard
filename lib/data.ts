@@ -1,35 +1,10 @@
-import cleaned from "@/data/cleaned.json";
-import report from "@/data/quality-report.json";
+// Aggregation helpers for the dashboard. All of them operate on records that
+// already came through the pipeline (/api/data) — nothing here re-cleans.
 
-export type Sentiment = "positive" | "neutral" | "negative";
+import type { CleanRecord, QualityReport, Sentiment } from "@/pipeline/types";
 
-export interface Post {
-  id: number;
-  platform: string;
-  timestamp: string;
-  author: string;
-  text: string;
-  language: string;
-  brand_mention: boolean;
-  sentiment: Sentiment;
-  sentiment_score: number;
-  topic: string;
-  reactions: number;
-  comments: number;
-  corrected: boolean;
-}
-
-export const POSTS = cleaned as Post[];
-export const QUALITY = report as {
-  raw_records: number;
-  counted_records: number;
-  excluded_off_topic: number;
-  removed_duplicates: number;
-  relabeled_sentiment: number;
-  off_topic: { id: number; text: string }[];
-  duplicates: { id: number; duplicate_of: number; text: string }[];
-  relabeled: { id: number; from: string; to: string; evidence: string[]; text: string }[];
-};
+export type Post = CleanRecord;
+export type { QualityReport, Sentiment };
 
 export const TOPIC_LABELS: Record<string, string> = {
   failed_transaction: "Failed transactions",

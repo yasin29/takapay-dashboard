@@ -1,29 +1,45 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  POSTS, TOPIC_LABELS, actionItems, applyFilters, dailyTrend, engagement,
-  languageBreakdown, platformBreakdown, sentimentSplit, topicBreakdown, type Filters,
+  TOPIC_LABELS, actionItems, applyFilters, dailyTrend, engagement,
+  languageBreakdown, platformBreakdown, sentimentSplit, topicBreakdown,
+  type Filters, type Post, type QualityReport,
 } from "@/lib/data";
 import { LanguageDonut, PlatformChart, SentimentDonut, TopicsChart, TrendChart } from "@/components/Charts";
 import { ActionPanel, FilterBar, PostsTable, QualityCard, Sidebar, StatTiles } from "@/components/Panels";
 
 const EMPTY: Filters = { sentiments: [], topics: [], platforms: [] };
 
+interface ApiData {
+  records: Post[];
+  quality: QualityReport;
+}
+
 export default function Page() {
+  const [data, setData] = useState<ApiData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [focusTopic, setFocusTopic] = useState<string | null>(null);
 
-  const allTopics = useMemo(() => topicBreakdown(POSTS).map((t) => t.topic), []);
-  const allPlatforms = useMemo(() => platformBreakdown(POSTS).map((p) => p.platform), []);
+  useEffect(() => {
+    fetch("/api/data")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`API ${r.status}`))))
+      .then(setData)
+      .catch((e) => setError(String(e)));
+  }, []);
 
-  const filtered = useMemo(() => applyFilters(POSTS, filters), [filters]);
+  const posts = useMemo(() => data?.records ?? [], [data]);
+  const allTopics = useMemo(() => topicBreakdown(posts).map((t) => t.topic), [posts]);
+  const allPlatforms = useMemo(() => platformBreakdown(posts).map((p) => p.platform), [posts]);
+
+  const filtered = useMemo(() => applyFilters(posts, filters), [posts, filters]);
   const split = useMemo(() => sentimentSplit(filtered), [filtered]);
   const trend = useMemo(() => dailyTrend(filtered), [filtered]);
   const topics = useMemo(() => topicBreakdown(filtered), [filtered]);
   const platforms = useMemo(() => platformBreakdown(filtered), [filtered]);
   const languages = useMemo(() => languageBreakdown(filtered), [filtered]);
-  const actions = useMemo(() => actionItems(POSTS), []);
+  const actions = useMemo(() => actionItems(posts), [posts]);
 
   const tablePosts = useMemo(() => {
     const base = focusTopic ? filtered.filter((p) => p.topic === focusTopic) : filtered;
@@ -34,6 +50,30 @@ export default function Page() {
     setFocusTopic(topic);
     document.getElementById("posts")?.scrollIntoView({ behavior: "smooth" });
   };
+
+  if (error) {
+    return (
+      <div className="shell">
+        <Sidebar />
+        <main className="main">
+          <h1>Something broke</h1>
+          <div className="page-sub">The data pipeline failed to respond: {error}</div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="shell">
+        <Sidebar />
+        <main className="main">
+          <h1>Overview</h1>
+          <div className="page-sub">Running the data pipeline — validating, deduplicating, and auditing the feed…</div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="shell">
@@ -54,7 +94,7 @@ export default function Page() {
 
         <FilterBar filters={filters} setFilters={setFilters} topics={allTopics} platforms={allPlatforms} />
 
-        <StatTiles posts={filtered} />
+        <StatTiles posts={filtered} rawCount={data.quality.raw_records} />
 
         <ActionPanel items={actions} onFocus={focusAndScroll} />
 
@@ -93,7 +133,7 @@ export default function Page() {
           </div>
         </div>
 
-        <QualityCard />
+        <QualityCard quality={data.quality} />
 
         <div style={{ marginTop: 16 }}>
           <PostsTable
