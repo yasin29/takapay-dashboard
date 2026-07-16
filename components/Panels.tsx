@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { TopicGroupBars } from "@/components/Charts";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { ShareOfVoiceChart, TopicGroupBars } from "@/components/Charts";
 import {
-  SENTIMENT_CHIP, SENTIMENT_COLOR, SENTIMENTS, TOPIC_GROUPS, TOPIC_LABELS, engagement,
-  type ActionItem, type Filters, type Post, type RepeatedPattern, type Sentiment,
+  DATA_RANGE, SENTIMENT_CHIP, SENTIMENT_COLOR, SENTIMENTS, TOPIC_GROUPS, TOPIC_LABELS, engagement,
+  type ActionItem, type AmplifyTheme, type CampaignWindows, type CompetitorGap, type DateRange, type Filters,
+  type LaunchReadiness, type Post, type RepeatedPattern, type Sentiment, type VoiceWeek,
 } from "@/lib/data";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -91,12 +92,37 @@ const NAV: [string, string, string][] = [
   ["#attention", "Risk Monitoring", "M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z"],
   ["#sentiment", "Sentiment", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-3.5 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM12 17.5c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"],
   ["#topics", "Topics", "M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"],
+  ["#intents", "Intents", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 16a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"],
   ["#repeats", "Repeated Issues", "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"],
   ["#platforms", "Social Listening", "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 1 0-3-3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65a2.92 2.92 0 1 0 2.92-2.92z"],
+  ["#campaign", "Campaign Planner", "M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z"],
+  ["#competitor", "Competitor Watch", "M9.01 14H2v2h7.01v3L13 15l-3.99-4v3zm5.98-1v-3H22V8h-7.01V5L11 9l3.99 4z"],
   ["#posts", "Content", "M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"],
 ];
 
 export function Sidebar() {
+  // Scrollspy: the active item follows both clicks and scrolling. A section is
+  // "current" when its top has passed the 120px line under the header.
+  const [active, setActive] = useState(NAV[0][0]);
+  useEffect(() => {
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        let cur = NAV[0][0];
+        for (const [href] of NAV) {
+          const el = document.getElementById(href.slice(1));
+          if (el && el.getBoundingClientRect().top <= 120) cur = href;
+        }
+        setActive(cur);
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   return (
     <aside className="sidebar">
       <div className="logo">
@@ -107,8 +133,8 @@ export function Sidebar() {
         </div>
       </div>
       <nav className="nav">
-        {NAV.map(([href, label, d], i) => (
-          <a key={href} href={href} className={i === 0 ? "active" : ""}>
+        {NAV.map(([href, label, d]) => (
+          <a key={href} href={href} className={active === href ? "active" : ""} onClick={() => setActive(href)}>
             <svg viewBox="0 0 24 24"><path d={d} /></svg>
             {label}
           </a>
@@ -148,9 +174,9 @@ function FilterPill({
   }, []);
   return (
     <div className="filter" ref={ref}>
-      <button className={`filter-btn${selected.length > 0 ? " on" : ""}`} onClick={() => setOpen(!open)}>
+      <button className="filter-btn" onClick={() => setOpen(!open)}>
         {label}
-        {selected.length > 0 && <span className="count">{selected.length}</span>}
+        <span className="count">{selected.length > 0 ? selected.length : options.length}</span>
         <Chevron open={open} />
       </button>
       {open && (
@@ -170,6 +196,161 @@ function FilterPill({
   );
 }
 
+/* ---------- Date-range picker — DeepDive's modal: preset rail + two-month
+   calendar + Apply/Cancel (+ Remove Comparison in compare mode). The dataset
+   spans June 2026, so days outside it are shown but disabled. ---------- */
+
+export const CAL_ICON = "M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z";
+
+const fmtIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addDays = (iso: string, n: number) => {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + n);
+  return fmtIso(d);
+};
+const spanDays = (r: DateRange) =>
+  Math.round((new Date(`${r.b}T12:00:00`).getTime() - new Date(`${r.a}T12:00:00`).getTime()) / 86400000) + 1;
+const fmtLong = (iso: string) => {
+  const m = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][parseInt(iso.slice(5, 7), 10) - 1];
+  return `${m} ${parseInt(iso.slice(8, 10), 10)}, ${iso.slice(0, 4)}`;
+};
+const inData = (iso: string) => iso >= DATA_RANGE.a && iso <= DATA_RANGE.b;
+const clampRange = (r: DateRange): DateRange | null =>
+  r.a > DATA_RANGE.b || r.b < DATA_RANGE.a ? null : { a: r.a < DATA_RANGE.a ? DATA_RANGE.a : r.a, b: r.b > DATA_RANGE.b ? DATA_RANGE.b : r.b };
+
+function CalendarMonth({
+  year, month, sel, onPick,
+}: {
+  year: number;
+  month: number; // 0-based
+  sel: { a: string | null; b: string | null };
+  onPick: (iso: string) => void;
+}) {
+  const firstCol = (new Date(year, month, 1).getDay() + 6) % 7; // Monday-first
+  const days = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [...Array(firstCol).fill(null)];
+  for (let d = 1; d <= days; d++) cells.push(d);
+  const name = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][month];
+  const state = (iso: string) => {
+    if (sel.a && iso === sel.a) return "end";
+    if (sel.b && iso === sel.b) return "end";
+    if (sel.a && sel.b && iso > sel.a && iso < sel.b) return "in";
+    return "";
+  };
+  return (
+    <div className="cal">
+      <div className="cal-title">{name} {year}</div>
+      <div className="cal-grid">
+        {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
+          <span key={d} className="cal-dow">{d}</span>
+        ))}
+        {cells.map((d, i) => {
+          if (d === null) return <span key={`e${i}`} />;
+          const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          const enabled = inData(iso);
+          return (
+            <button
+              key={iso}
+              className={`cal-day ${state(iso)}${enabled ? "" : " off"}`}
+              disabled={!enabled}
+              onClick={() => onPick(iso)}
+            >
+              {d}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function DateRangePicker({
+  mode, value, anchor, onApply, onRemove, onClose,
+}: {
+  mode: "main" | "compare";
+  value: DateRange | null;
+  anchor?: DateRange; // main range, used by compare presets
+  onApply: (r: DateRange) => void;
+  onRemove?: () => void;
+  onClose: () => void;
+}) {
+  const [a, setA] = useState<string | null>(value?.a ?? null);
+  const [b, setB] = useState<string | null>(value?.b ?? null);
+
+  const pick = (iso: string) => {
+    if (!a || (a && b)) {
+      setA(iso);
+      setB(null);
+    } else if (iso < a) {
+      setA(iso);
+    } else {
+      setB(iso);
+    }
+  };
+
+  const presets: { label: string; range: DateRange | null }[] =
+    mode === "main"
+      ? [
+          { label: "Today", range: { a: DATA_RANGE.b, b: DATA_RANGE.b } },
+          { label: "Yesterday", range: { a: addDays(DATA_RANGE.b, -1), b: addDays(DATA_RANGE.b, -1) } },
+          { label: "This week", range: { a: "2026-06-29", b: DATA_RANGE.b } },
+          { label: "Last week", range: { a: "2026-06-22", b: "2026-06-28" } },
+          { label: "This month", range: DATA_RANGE },
+          { label: "Last month", range: null },
+          { label: "This year", range: DATA_RANGE },
+          { label: "All time", range: DATA_RANGE },
+        ]
+      : [
+          { label: "Previous period", range: anchor ? clampRange({ a: addDays(anchor.a, -spanDays(anchor)), b: addDays(anchor.a, -1) }) : null },
+          { label: "Previous week", range: anchor ? clampRange({ a: addDays(anchor.a, -7), b: addDays(anchor.a, -1) }) : null },
+          { label: "Previous month", range: null },
+          { label: "Previous year", range: null },
+        ];
+
+  return (
+    <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="picker">
+        <button className="picker-x" onClick={onClose} aria-label="Close">✕</button>
+        <div className="picker-body">
+          <div className="picker-rail">
+            {presets.map((p) => (
+              <button
+                key={p.label}
+                className={p.range ? "" : "off"}
+                disabled={!p.range}
+                onClick={() => { if (p.range) { setA(p.range.a); setB(p.range.b); } }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="picker-cals">
+            <CalendarMonth year={2026} month={5} sel={{ a, b }} onPick={pick} />
+            <CalendarMonth year={2026} month={6} sel={{ a, b }} onPick={pick} />
+          </div>
+        </div>
+        <div className="picker-foot">
+          <span className="picker-input">{a ? fmtLong(a) : "Start date"}</span>
+          <span className="picker-dash">–</span>
+          <span className="picker-input">{b ? fmtLong(b) : "End date"}</span>
+          <span style={{ flex: 1 }} />
+          {mode === "compare" && onRemove && (
+            <button className="btn-danger" onClick={() => { onRemove(); onClose(); }}>Remove Comparison</button>
+          )}
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button
+            className="btn-black"
+            disabled={!a}
+            onClick={() => { if (a) { onApply({ a, b: b ?? a }); onClose(); } }}
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FilterBar({
   filters, setFilters, topics, platforms, updatedAt,
 }: {
@@ -184,7 +365,7 @@ export function FilterBar({
   return (
     <div className="filters">
       <FilterPill
-        label="Sentiment" options={SENTIMENTS} selected={filters.sentiments} render={cap}
+        label="Sentiments" options={SENTIMENTS} selected={filters.sentiments} render={cap}
         onToggle={(v) => setFilters({ ...filters, sentiments: toggle(filters.sentiments, v) as Sentiment[] })}
         onClear={() => setFilters({ ...filters, sentiments: [] })}
       />
@@ -214,12 +395,6 @@ const TILE_ICONS: Record<string, string> = {
   comments: "M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z",
 };
 
-function halfSplit(posts: Post[]) {
-  const h1 = posts.filter((p) => p.timestamp.slice(8, 10) <= "15");
-  const h2 = posts.filter((p) => p.timestamp.slice(8, 10) > "15");
-  return { h1, h2 };
-}
-
 function Delta({ pct, goodWhenUp }: { pct: number | null; goodWhenUp: boolean }) {
   if (pct === null) return null;
   const up = pct >= 0;
@@ -231,40 +406,39 @@ function Delta({ pct, goodWhenUp }: { pct: number | null; goodWhenUp: boolean })
   );
 }
 
-export function StatTiles({ posts, rawCount }: { posts: Post[]; rawCount: number }) {
+export function StatTiles({ posts, comparePosts, rawCount }: { posts: Post[]; comparePosts?: Post[] | null; rawCount: number }) {
   const total = posts.length;
   const neg = posts.filter((p) => p.sentiment === "negative").length;
   const reactions = posts.reduce((s, p) => s + p.reactions, 0);
   const comments = posts.reduce((s, p) => s + p.comments, 0);
-  const { h1, h2 } = halfSplit(posts);
-  const growth = (a: number, b: number) => (a > 0 ? ((b - a) / a) * 100 : null);
-  const shareDelta = (sel: (p: Post) => boolean) => {
-    if (h1.length === 0 || h2.length === 0) return null;
-    const s1 = (100 * h1.filter(sel).length) / h1.length;
-    const s2 = (100 * h2.filter(sel).length) / h2.length;
-    return s2 - s1;
-  };
+  // Deltas compare the selected range against the comparison range from the
+  // date picker. No comparison (or an empty one) → no chips.
+  const prev = comparePosts && comparePosts.length > 0 ? comparePosts : null;
   const sum = (list: Post[], f: (p: Post) => number) => list.reduce((s, p) => s + f(p), 0);
+  const growth = (cur: number, prevVal: number) => (prev && prevVal > 0 ? ((cur - prevVal) / prevVal) * 100 : null);
+  const negShareDelta = prev
+    ? (100 * neg) / Math.max(total, 1) - (100 * prev.filter((p) => p.sentiment === "negative").length) / prev.length
+    : null;
 
   const tiles = [
     {
       icon: TILE_ICONS.mentions, label: "Brand Mentions Counted", value: fmt(total),
-      delta: growth(h1.length, h2.length), goodWhenUp: true,
+      delta: growth(total, prev?.length ?? 0), goodWhenUp: true,
       note: `${fmt(rawCount)} raw, noise removed`,
     },
     {
       icon: TILE_ICONS.negative, label: "Negative Share", value: total ? `${Math.round((100 * neg) / total)}%` : "—",
-      delta: shareDelta((p) => p.sentiment === "negative"), goodWhenUp: false,
+      delta: negShareDelta, goodWhenUp: false,
       note: `${fmt(neg)} negative posts`,
     },
     {
       icon: TILE_ICONS.reactions, label: "Reactions", value: fmt(reactions),
-      delta: growth(sum(h1, (p) => p.reactions), sum(h2, (p) => p.reactions)), goodWhenUp: true,
+      delta: growth(reactions, prev ? sum(prev, (p) => p.reactions) : 0), goodWhenUp: true,
       note: "likes and reactions on posts",
     },
     {
       icon: TILE_ICONS.comments, label: "Comments", value: fmt(comments),
-      delta: growth(sum(h1, (p) => p.comments), sum(h2, (p) => p.comments)), goodWhenUp: true,
+      delta: growth(comments, prev ? sum(prev, (p) => p.comments) : 0), goodWhenUp: true,
       note: "replies and discussion",
     },
   ];
@@ -477,6 +651,167 @@ export function PostsTable({ posts, focusLabel, onClearFocus }: { posts: Post[];
           )}
         </div>
         <button className="pg-btn next" disabled={page === pages} onClick={() => setPage(page + 1)}>Next →</button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Campaign planner — is it safe, what to say, where and when ---------- */
+
+const VERDICT_COPY: Record<LaunchReadiness["verdict"], { label: string; cls: string }> = {
+  hold: { label: "Hold paid promotion", cls: "hold" },
+  caution: { label: "Proceed with caution", cls: "caution" },
+  ready: { label: "Clear to launch", cls: "ready" },
+};
+
+export function CampaignPlanner({
+  readiness, themes, windows, onFocus,
+}: {
+  readiness: LaunchReadiness;
+  themes: AmplifyTheme[];
+  windows: CampaignWindows;
+  onFocus: (topic: string) => void;
+}) {
+  const verdict = VERDICT_COPY[readiness.verdict];
+  const best = windows.best;
+  return (
+    <div className="card" id="campaign">
+      <h3>
+        Plan the next campaign
+        <span className={`verdict ${verdict.cls}`}>{verdict.label}</span>
+      </h3>
+      <div className="card-sub">
+        A launch is an attention magnet — it amplifies whatever people already feel. Three calls from this month&rsquo;s feed:
+        what must be fixed before drawing a crowd, which proof points to build the message on, and where the audience actually responds.
+      </div>
+      <div className="cp-grid">
+        <div className="cp-block">
+          <div className="mini-head">1 · Fix before you launch</div>
+          <div className="cp-hint">
+            {readiness.negShare}% of counted mentions are negative. Promote now and these become the campaign&rsquo;s comment section — click one to read them.
+          </div>
+          {readiness.blockers.map((b) => (
+            <div className="gate-row" key={b.topic} onClick={() => onFocus(b.topic)}>
+              <span className={`badge ${b.severity === "blocker" ? "fix" : "watch"}`}>
+                {b.severity === "blocker" ? "! blocker" : "~ warm"}
+              </span>
+              <span className="gate-label">{b.label}</span>
+              <span className="gate-meta"><b>{b.negShare}%</b> negative of <b>{fmt(b.total)}</b> posts</span>
+            </div>
+          ))}
+        </div>
+        <div className="cp-block">
+          <div className="mini-head">2 · Amplify what already works</div>
+          <div className="cp-hint">
+            Themes people praise unprompted — the most-engaged real posts are the campaign copy, in the customers&rsquo; own words.
+          </div>
+          {themes.map((t) => (
+            <div className="amp-row" key={t.topic} onClick={() => onFocus(t.topic)}>
+              <div className="amp-head">
+                <span className="gate-label">{t.label}</span>
+                <span className="gate-meta"><b>{t.posShare}%</b> positive · <b>{fmt(t.positive)}</b> posts</span>
+              </div>
+              {t.quotes[0] && <div className="amp-quote">&ldquo;{t.quotes[0].text}&rdquo;</div>}
+            </div>
+          ))}
+        </div>
+        <div className="cp-block">
+          <div className="mini-head">3a · Where to run it</div>
+          <div className="cp-hint">Positive share by platform — run the promotion where the mood is, answer complaints where they are.</div>
+          {windows.platforms.map((p) => (
+            <div className="plat-row" key={p.platform}>
+              <span className="plat-row-name">{p.platform}</span>
+              <span className="plat-bar">
+                <span className="plat-bar-fill" style={{ width: `${p.posShare}%` }} />
+              </span>
+              <span className="gate-meta"><b>{p.posShare}%</b> positive · {fmt(p.avgEng)} avg eng.</span>
+            </div>
+          ))}
+        </div>
+        <div className="cp-block">
+          <div className="mini-head">3b · When to post</div>
+          <div className="cp-hint">Average reactions + comments per post, by weekday and daypart — when the audience is paying attention.</div>
+          <div className="heat-grid">
+            <span />
+            {windows.days.map((d) => (
+              <span className="heat-axis" key={d}>{d}</span>
+            ))}
+            {windows.buckets.map((b) => (
+              <Fragment key={b}>
+                <span className="heat-axis row">{b.split(" ")[0]}</span>
+                {windows.days.map((d) => {
+                  const c = windows.cells.find((x) => x.day === d && x.bucket === b)!;
+                  const isBest = best && c.day === best.day && c.bucket === best.bucket;
+                  return (
+                    <span
+                      key={d + b}
+                      className={`heat-cell${isBest ? " best" : ""}`}
+                      style={{ background: `rgba(46, 160, 147, ${(0.06 + 0.66 * c.norm).toFixed(2)})` }}
+                      title={`${d} ${c.bucket}: ${c.posts} posts, avg ${c.avgEng} reactions+comments`}
+                    >
+                      {c.avgEng}
+                    </span>
+                  );
+                })}
+              </Fragment>
+            ))}
+          </div>
+          {best && (
+            <div className="cp-hint" style={{ marginTop: 8, marginBottom: 0 }}>
+              Best window: <b>{best.day}, {best.bucket.toLowerCase()}</b> — avg {best.avgEng} reactions + comments per post.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Competitor watch — how loudly NgoodPay features in OUR feed ---------- */
+
+export function CompetitorPanel({
+  sov, gaps, onFocus,
+}: {
+  sov: VoiceWeek[];
+  gaps: CompetitorGap[];
+  onFocus: (topic: string) => void;
+}) {
+  const mentions = sov.reduce((s, w) => s + w.competitor, 0);
+  return (
+    <div className="card" id="competitor">
+      <div className="card-head-row">
+        <div>
+          <h3>Competitor watch — NgoodPay <span className="count-pill">{fmt(mentions)} mentions</span></h3>
+          <div className="card-sub">
+            These are posts about TakaPay that praise NgoodPay — a switching-risk signal, not NgoodPay&rsquo;s own sentiment.
+            A true benchmark needs an NgoodPay source adapter in the pipeline.
+          </div>
+        </div>
+        <button className="btn-ghost" onClick={() => onFocus("competitor")}>Read the posts →</button>
+      </div>
+      <div className="cp-grid">
+        <div className="cp-block">
+          <div className="mini-head">Share of the conversation, weekly</div>
+          <ShareOfVoiceChart data={sov} />
+          <div className="chart-note">A rising share means competitor comparisons are crowding out your own story — the early-warning line to watch.</div>
+        </div>
+        <div className="cp-block">
+          <div className="mini-head">What they&rsquo;re praised for — and where it lands on us</div>
+          {gaps.map((g) => (
+            <div className="gap-row" key={g.claim}>
+              <div className="rep-count">{g.count}×</div>
+              <div className="rep-body">
+                <div className="gap-claim">{g.claim}</div>
+                <div className="rep-text">&ldquo;{g.sample}&rdquo;</div>
+                <div className="rep-meta">
+                  lands on <b>{g.againstLabel}</b> — our own {fmt(g.againstTotal)} posts there are{" "}
+                  {g.status === "exposed" ? `${g.againstNegShare}% negative` : g.status === "defensible" ? `${g.againstPosShare}% positive` : "neutral (nobody vouches for us)"}
+                </div>
+              </div>
+              <span className={`badge ${g.status === "exposed" ? "fix" : g.status === "defensible" ? "def" : "watch"}`}>{g.status}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

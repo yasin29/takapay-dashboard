@@ -31,6 +31,8 @@ Two supporting calls:
 
 - **"What people keep repeating."** Masking the template slots in each post (amounts, operators, family words, area names) exposes near-identical messages posted again and again by different accounts. The top pattern — money deducted but recharge never arrived — repeats 44 times. High repetition means a systemic issue, or coordinated posting. Either way the brand team should know.
 - **Topics grouped by team ownership** (transactions / app / customer care / offers / competitor), because that is how the work gets routed, not by a flat topic list.
+- **Campaign planner.** A launch is an attention magnet — it amplifies whatever people already feel. The panel makes the three launch calls from the same feed: a fix-before-you-launch gate (promote now and failed transactions become the campaign's comment section — verdict: hold), proof points to amplify in the customers' own words (cashback, send money, recharge — all ≥96% positive), and where/when the audience actually responds (positive share by platform, engagement by weekday × daypart).
+- **Competitor watch, framed honestly.** All NgoodPay data here is posts about TakaPay that praise NgoodPay — a switching-risk signal, not NgoodPay's own sentiment (a true benchmark is one source adapter away). Weekly share of voice rose 11.9% → 18.9% across June. Each competitor claim is matched to what our own posts say on the same theme: "lower cash-out charges" lands on a real weakness (charges & fees, 83% negative — exposed), "bigger cashback" lands on our best-loved theme (100% positive — defensible), and "more agents" lands on silence (all 26 agent posts neutral — unproven, nobody vouches for us).
 
 ## What I noticed about the data
 

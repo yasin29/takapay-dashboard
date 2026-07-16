@@ -2,12 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  TOPIC_LABELS, actionItems, applyFilters, dailyTrend, engagement,
-  languageBreakdown, platformBreakdown, repeatedPatterns, sentimentSplit, topicBreakdown,
-  type Filters, type Post, type QualityReport,
+  DATA_RANGE, INTENTS, INTENT_COLOR, TOPIC_LABELS, actionItems, amplifyThemes, applyFilters,
+  campaignWindows, competitorGaps, dailyTrend, engagement, inRange, intentTrend,
+  languageBreakdown, launchReadiness, platformBreakdown, rangeLabel,
+  repeatedPatterns, sentimentSplit, shareOfVoice, topicBreakdown,
+  type DateRange, type Filters, type Post, type QualityReport,
 } from "@/lib/data";
-import { LanguageDonut, PlatformChart, SentimentDonut, TrendChart } from "@/components/Charts";
-import { ActionPanel, FilterBar, PostsTable, RepeatedIssues, Sidebar, StatTiles, TopicGroups } from "@/components/Panels";
+import { IntentTrendChart, LanguageDonut, PlatformChart, SentimentDonut, TopicSentimentChart, TrendChart } from "@/components/Charts";
+import {
+  ActionPanel, CAL_ICON, CampaignPlanner, CompetitorPanel, DateRangePicker, FilterBar, PostsTable,
+  RepeatedIssues, Sidebar, StatTiles,
+} from "@/components/Panels";
 
 const EMPTY: Filters = { sentiments: [], topics: [], platforms: [] };
 
@@ -22,6 +27,13 @@ export default function Page() {
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [focusTopic, setFocusTopic] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
+  // Date ranges: the main range filters the whole dashboard; the comparison
+  // range only drives the delta chips on the stat card.
+  // Comparison defaults to None: the full month compared to its own first half
+  // would inflate every delta. Pick a range via "compared to".
+  const [range, setRange] = useState<DateRange>(DATA_RANGE);
+  const [compareRange, setCompareRange] = useState<DateRange | null>(null);
+  const [picker, setPicker] = useState<"main" | "compare" | null>(null);
 
   useEffect(() => {
     fetch("/api/data")
@@ -37,14 +49,34 @@ export default function Page() {
   const allTopics = useMemo(() => topicBreakdown(posts).map((t) => t.topic), [posts]);
   const allPlatforms = useMemo(() => platformBreakdown(posts).map((p) => p.platform), [posts]);
 
-  const filtered = useMemo(() => applyFilters(posts, filters), [posts, filters]);
+  const filtered = useMemo(
+    () => applyFilters(posts, filters).filter((p) => inRange(p, range)),
+    [posts, filters, range]
+  );
+  // Same pill filters over the comparison window, so deltas compare like with like.
+  const comparePosts = useMemo(
+    () => (compareRange ? applyFilters(posts, filters).filter((p) => inRange(p, compareRange)) : null),
+    [posts, filters, compareRange]
+  );
   const split = useMemo(() => sentimentSplit(filtered), [filtered]);
   const trend = useMemo(() => dailyTrend(filtered), [filtered]);
   const topics = useMemo(() => topicBreakdown(filtered), [filtered]);
+  const topicSplitData = useMemo(
+    () => topics.map((t) => ({ ...t, label: TOPIC_LABELS[t.topic] ?? t.topic })),
+    [topics]
+  );
+  const intents = useMemo(() => intentTrend(filtered), [filtered]);
   const platforms = useMemo(() => platformBreakdown(filtered), [filtered]);
   const languages = useMemo(() => languageBreakdown(filtered), [filtered]);
   const actions = useMemo(() => actionItems(posts), [posts]);
   const repeats = useMemo(() => repeatedPatterns(filtered), [filtered]);
+  // Strategic panels read the full counted feed, not the filtered view — a
+  // launch call should not change because a filter pill is on (same as actions).
+  const readiness = useMemo(() => launchReadiness(posts), [posts]);
+  const amplify = useMemo(() => amplifyThemes(posts), [posts]);
+  const windows = useMemo(() => campaignWindows(posts), [posts]);
+  const sov = useMemo(() => shareOfVoice(posts), [posts]);
+  const gaps = useMemo(() => competitorGaps(posts), [posts]);
 
   const tablePosts = useMemo(() => {
     const base = focusTopic ? filtered.filter((p) => p.topic === focusTopic) : filtered;
@@ -92,21 +124,38 @@ export default function Page() {
             </div>
           </div>
           <div className="head-controls">
-            <span className="date-chip">
-              <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z" /></svg>
-              Jun 1 — Jun 30
-            </span>
+            <button className="date-chip as-btn" onClick={() => setPicker("main")}>
+              <svg viewBox="0 0 24 24"><path d={CAL_ICON} /></svg>
+              {rangeLabel(range)}
+            </button>
             <span className="cmp-label">compared to</span>
-            <span className="date-chip" title="Delta chips on the stat card compare the two halves of June">
-              First half <span style={{ fontWeight: 500, color: "var(--faint)" }}>Jun 1 - Jun 15</span>
-              <svg className="chev-sm" viewBox="0 0 20 20"><path d="M5 7.5l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </span>
+            <button className="date-chip as-btn" onClick={() => setPicker("compare")}>
+              {compareRange ? (
+                <>
+                  <svg viewBox="0 0 24 24"><path d={CAL_ICON} /></svg>
+                  {rangeLabel(compareRange)}
+                </>
+              ) : (
+                "None"
+              )}
+            </button>
           </div>
         </div>
 
+        {picker && (
+          <DateRangePicker
+            mode={picker}
+            value={picker === "main" ? range : compareRange}
+            anchor={range}
+            onApply={(r) => (picker === "main" ? setRange(r) : setCompareRange(r))}
+            onRemove={picker === "compare" ? () => setCompareRange(null) : undefined}
+            onClose={() => setPicker(null)}
+          />
+        )}
+
         <FilterBar filters={filters} setFilters={setFilters} topics={allTopics} platforms={allPlatforms} updatedAt={updatedAt} />
 
-        <StatTiles posts={filtered} rawCount={data.quality.raw_records} />
+        <StatTiles posts={filtered} comparePosts={comparePosts} rawCount={data.quality.raw_records} />
 
         <ActionPanel items={actions} onFocus={focusAndScroll} />
 
@@ -123,7 +172,20 @@ export default function Page() {
           </div>
         </div>
 
-        <TopicGroups rows={topics} onFocus={focusAndScroll} />
+        <div className="card" id="topics">
+          <h3>Topic Sentiment Split</h3>
+          <div className="card-sub">Sentiment breakdown across different topics — click a bar to see the posts</div>
+          <TopicSentimentChart data={topicSplitData} onFocus={focusAndScroll} />
+        </div>
+
+        <div className="card" id="intents" style={{ marginTop: 16 }}>
+          <h3>Intent Based Mentions</h3>
+          <div className="card-sub">
+            Mentions grouped by conversation signals — what each post is trying to do, labeled with
+            simple text rules (complaint, question, support ask, billing, praise).
+          </div>
+          <IntentTrendChart data={intents} intents={INTENTS} colors={{ ...INTENT_COLOR }} />
+        </div>
 
         <div style={{ marginTop: 16 }}>
           <RepeatedIssues patterns={repeats} />
@@ -143,6 +205,14 @@ export default function Page() {
               Most posts mix Bangla and English in one sentence — any sentiment model for this market has to handle that natively.
             </div>
           </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <CampaignPlanner readiness={readiness} themes={amplify} windows={windows} onFocus={focusAndScroll} />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <CompetitorPanel sov={sov} gaps={gaps} onFocus={focusAndScroll} />
         </div>
 
         <div style={{ marginTop: 16 }}>

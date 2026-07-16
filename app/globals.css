@@ -82,20 +82,21 @@ h1 { font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: -0.4p
   box-shadow: 0 1px 2px rgb(16 24 40 / 4%);
 }
 .date-chip svg { width: 15px; height: 15px; fill: var(--muted); }
-.date-chip .chev-sm { width: 11px; height: 11px; fill: none; stroke: var(--faint); stroke-width: 1.8; }
+.date-chip .chev-sm { width: 12px; height: 12px; fill: none; stroke: var(--faint); stroke-width: 1.8; transition: transform 0.15s; }
+.date-chip .chev-sm.open { transform: rotate(180deg); }
+.date-chip.as-btn { cursor: pointer; font-family: inherit; }
 
 /* FILTER PILLS — active = mint tint, teal border, solid teal count badge */
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; position: relative; z-index: 5; }
 .filter { position: relative; }
 .filter-btn {
-  display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 10px;
-  border: 1px solid var(--line-2); background: var(--card); color: var(--ink); font-weight: 500; font-size: 13.5px; cursor: pointer;
-  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 9px; padding: 10px 16px; border-radius: 12px;
+  border: 1px solid var(--mint-border); background: var(--teal-soft); color: var(--ink);
+  font-weight: 500; font-size: 14px; cursor: pointer; font-family: inherit;
 }
-.filter-btn.on { background: var(--teal-soft); border-color: var(--teal-border); font-weight: 700; }
-.filter-btn .count { background: var(--teal); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
-.filter-btn .chev { width: 12px; height: 12px; fill: none; stroke: var(--faint); stroke-width: 1.8; transition: transform 0.15s; }
-.filter-btn.on .chev { stroke: var(--teal); }
+.filter-btn:hover { border-color: var(--teal-border); }
+.filter-btn .count { background: var(--teal); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 700; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; padding: 0 6px; }
+.filter-btn .chev { width: 13px; height: 13px; fill: none; stroke: var(--teal); stroke-width: 2; transition: transform 0.15s; }
 .filter-btn .chev.open { transform: rotate(180deg); }
 .updated { margin-left: auto; font-size: 12px; color: var(--faint); }
 .filter-menu {
@@ -223,9 +224,124 @@ h1 { font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: -0.4p
 
 .chart-note { font-size: 11.5px; color: var(--faint); margin-top: 8px; }
 
+/* DATE-RANGE PICKER — DeepDive's modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgb(20 20 22 / 45%); z-index: 50;
+  display: flex; align-items: flex-start; justify-content: center; padding: 60px 20px;
+}
+.picker {
+  position: relative; background: #fff; border-radius: 16px; box-shadow: 0 24px 60px rgb(0 0 0 / 25%);
+  width: 720px; max-width: 100%;
+}
+.picker-x {
+  position: absolute; top: 14px; right: 16px; border: none; background: none; font-size: 15px;
+  color: var(--muted); cursor: pointer; padding: 4px; font-family: inherit;
+}
+.picker-body { display: flex; }
+.picker-rail {
+  width: 168px; flex-shrink: 0; border-right: 1px solid var(--line); padding: 18px 0;
+  display: flex; flex-direction: column;
+}
+.picker-rail button {
+  text-align: left; border: none; background: none; font-family: inherit; font-size: 14px;
+  color: var(--body); padding: 10px 24px; cursor: pointer;
+}
+.picker-rail button:hover { background: var(--teal-soft); }
+.picker-rail button.off { color: var(--ghost); cursor: default; }
+.picker-rail button.off:hover { background: none; }
+.picker-cals { display: flex; gap: 26px; padding: 20px 26px; flex: 1; }
+.cal { flex: 1; }
+.cal-title { text-align: center; font-weight: 700; font-size: 15px; color: var(--ink-2); margin-bottom: 12px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-dow { text-align: center; font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 6px 0; }
+.cal-day {
+  border: none; background: none; font-family: inherit; font-size: 13px; color: var(--body);
+  height: 38px; cursor: pointer; border-radius: 0;
+}
+.cal-day:hover { background: var(--teal-soft); }
+.cal-day.in { background: #d9f4ef; color: var(--ink-2); }
+.cal-day.end { background: var(--teal); color: #fff; font-weight: 700; border-radius: 6px; }
+.cal-day.off { color: var(--ghost); cursor: default; }
+.cal-day.off:hover { background: none; }
+.picker-foot {
+  display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding: 16px 20px;
+}
+.picker-input {
+  border: 1px solid var(--line-2); border-radius: 8px; padding: 9px 14px; font-size: 13.5px;
+  color: var(--ink); min-width: 128px; background: #fff;
+}
+.picker-dash { color: var(--faint); }
+.btn-black {
+  background: var(--ink); color: #fff; border: none; border-radius: 10px; padding: 10px 22px;
+  font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+.btn-black:disabled { opacity: 0.4; cursor: default; }
+.btn-danger {
+  background: #fff; color: var(--red-text); border: 1px solid var(--red-border); border-radius: 10px;
+  padding: 10px 16px; font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+
+/* CAMPAIGN PLANNER + COMPETITOR WATCH */
+.verdict {
+  display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid;
+  padding: 3px 11px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase;
+}
+.verdict.hold { background: var(--red-bg); border-color: var(--red-border); color: var(--red-text); }
+.verdict.caution { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber-text); }
+.verdict.ready { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); }
+
+.cp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; }
+.cp-block { min-width: 0; }
+.mini-head {
+  font-weight: 700; color: var(--ink); font-size: 13.5px;
+  padding: 7px 10px; background: #f4f4f5; border-radius: 8px; margin-bottom: 8px;
+}
+.cp-hint { font-size: 12px; color: var(--faint); margin-bottom: 10px; }
+
+.gate-row {
+  display: flex; align-items: center; gap: 10px; border: 1px solid var(--line);
+  border-radius: 10.5px; padding: 9px 12px; margin-bottom: 8px; cursor: pointer;
+}
+.gate-row:hover { border-color: var(--mint-border); background: #fcfefe; }
+.gate-label { font-weight: 700; color: var(--ink); font-size: 13px; flex: 1; }
+.gate-meta { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+.gate-meta b { color: var(--ink); font-weight: 700; }
+
+.amp-row {
+  border: 1px solid var(--line); border-radius: 10.5px; padding: 9px 12px;
+  margin-bottom: 8px; cursor: pointer;
+}
+.amp-row:hover { border-color: var(--mint-border); background: #fcfefe; }
+.amp-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; }
+.amp-quote { font-size: 12.5px; color: var(--body); font-style: italic; }
+
+.plat-row { display: flex; align-items: center; gap: 10px; padding: 5px 2px; }
+.plat-row-name { font-size: 12.5px; font-weight: 700; color: var(--ink); width: 84px; flex-shrink: 0; }
+.plat-bar { flex: 1; height: 8px; background: #f0f0f2; border-radius: 999px; overflow: hidden; }
+.plat-bar-fill { display: block; height: 100%; background: var(--teal); border-radius: 999px; }
+
+.heat-grid {
+  display: grid; grid-template-columns: 76px repeat(7, 1fr); gap: 3px; align-items: stretch;
+}
+.heat-axis { font-size: 10.5px; color: var(--faint); text-align: center; align-self: center; font-weight: 600; }
+.heat-axis.row { text-align: right; padding-right: 6px; }
+.heat-cell {
+  display: flex; align-items: center; justify-content: center; border-radius: 6px;
+  font-size: 10.5px; font-weight: 600; color: var(--ink-2); min-height: 26px; cursor: default;
+}
+.heat-cell.best { outline: 2px solid var(--teal-dark); outline-offset: -2px; font-weight: 700; }
+
+.gap-row {
+  display: flex; gap: 14px; align-items: center; border: 1px solid var(--line);
+  border-radius: 10.5px; padding: 11px 14px; margin-bottom: 8px;
+}
+.gap-claim { font-weight: 700; color: var(--ink); font-size: 13px; margin-bottom: 3px; }
+.badge.def { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); }
+
 @media (max-width: 1000px) {
   .tiles-card { grid-template-columns: repeat(2, 1fr); row-gap: 18px; }
   .tile:nth-child(3) { border-left: none; }
   .grid.two, .grid.two-even { grid-template-columns: 1fr; }
+  .cp-grid { grid-template-columns: 1fr; }
   .sidebar { display: none; }
 }

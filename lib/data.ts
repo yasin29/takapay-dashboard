@@ -220,3 +220,305 @@ export function actionItems(posts: Post[]): ActionItem[] {
     }));
   return rows.sort((a, b) => b.score - a.score).slice(0, 4);
 }
+
+/* ---------- Campaign planner — fix first, amplify what works, pick the window ----------
+   A launch decision is three questions: is it safe to draw attention, what do
+   we say, and where/when do we say it. All three come from the same feed. */
+
+export type LaunchVerdict = "hold" | "caution" | "ready";
+
+export interface LaunchBlocker {
+  topic: string;
+  label: string;
+  total: number;
+  negShare: number;
+  severity: "blocker" | "warm";
+}
+
+export interface LaunchReadiness {
+  verdict: LaunchVerdict;
+  negShare: number; // overall negative share, the number the gate watches
+  blockers: LaunchBlocker[];
+}
+
+// A paid campaign is an attention magnet: promoting while a theme is loudly
+// negative fills the campaign's own comments with that complaint. Thresholds
+// are deliberately simple and visible: >=20 posts at >=60% negative blocks.
+export function launchReadiness(posts: Post[]): LaunchReadiness {
+  const rows = topicBreakdown(posts).filter((r) => r.topic !== "competitor");
+  const blockers: LaunchBlocker[] = [];
+  for (const r of rows) {
+    const negShare = Math.round((100 * r.negative) / Math.max(r.total, 1));
+    if (r.total >= 20 && negShare >= 60) blockers.push({ topic: r.topic, label: TOPIC_LABELS[r.topic] ?? r.topic, total: r.total, negShare, severity: "blocker" });
+    else if (r.total >= 10 && negShare >= 40) blockers.push({ topic: r.topic, label: TOPIC_LABELS[r.topic] ?? r.topic, total: r.total, negShare, severity: "warm" });
+  }
+  blockers.sort((a, b) => b.total * b.negShare - a.total * a.negShare);
+  const neg = posts.filter((p) => p.sentiment === "negative").length;
+  const verdict: LaunchVerdict = blockers.some((b) => b.severity === "blocker")
+    ? "hold"
+    : blockers.length > 0
+      ? "caution"
+      : "ready";
+  return { verdict, negShare: Math.round((100 * neg) / Math.max(posts.length, 1)), blockers: blockers.slice(0, 4) };
+}
+
+export interface AmplifyTheme {
+  topic: string;
+  label: string;
+  positive: number;
+  posShare: number;
+  quotes: { text: string; platform: string; eng: number }[];
+}
+
+// The mirror image of the complaints: themes people already praise, with the
+// most-engaged real posts. Customers' own words are the campaign copy.
+export function amplifyThemes(posts: Post[]): AmplifyTheme[] {
+  return topicBreakdown(posts)
+    .filter((r) => r.topic !== "competitor" && r.total >= 10 && r.positive / r.total >= 0.6)
+    .sort((a, b) => b.positive - a.positive)
+    .slice(0, 4)
+    .map((r) => {
+      const quotes = posts
+        .filter((p) => p.topic === r.topic && p.sentiment === "positive")
+        .sort((a, b) => engagement(b) - engagement(a))
+        .slice(0, 2)
+        .map((p) => ({ text: p.text, platform: p.platform, eng: engagement(p) }));
+      return {
+        topic: r.topic,
+        label: TOPIC_LABELS[r.topic] ?? r.topic,
+        positive: r.positive,
+        posShare: Math.round((100 * r.positive) / r.total),
+        quotes,
+      };
+    });
+}
+
+export interface PlatformWindow {
+  platform: string;
+  total: number;
+  posShare: number;
+  avgEng: number;
+}
+
+export interface HeatCell {
+  day: string;
+  bucket: string;
+  posts: number;
+  avgEng: number;
+  norm: number; // 0..1 against the busiest cell, for color intensity
+}
+
+export interface CampaignWindows {
+  platforms: PlatformWindow[];
+  days: string[];
+  buckets: string[];
+  cells: HeatCell[];
+  best: HeatCell | null;
+}
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const TIME_BUCKETS: { name: string; from: number; to: number }[] = [
+  { name: "Morning 6–11", from: 6, to: 11 },
+  { name: "Afternoon 12–16", from: 12, to: 16 },
+  { name: "Evening 17–21", from: 17, to: 21 },
+  { name: "Night 22–5", from: 22, to: 5 },
+];
+
+// Where and when the audience actually pays attention: platform positive share
+// (post the campaign where the mood is), and a weekday x daypart map of average
+// engagement per post (post it when people react).
+export function campaignWindows(posts: Post[]): CampaignWindows {
+  const platforms = platformBreakdown(posts).map((r) => {
+    const eng = posts.filter((p) => p.platform === r.platform).reduce((s, p) => s + engagement(p), 0);
+    return {
+      platform: r.platform,
+      total: r.total,
+      posShare: Math.round((100 * r.positive) / Math.max(r.total, 1)),
+      avgEng: Math.round(eng / Math.max(r.total, 1)),
+    };
+  });
+  platforms.sort((a, b) => b.posShare - a.posShare || b.avgEng - a.avgEng);
+
+  const grid = new Map<string, { posts: number; eng: number }>();
+  for (const p of posts) {
+    const dt = new Date(p.timestamp.replace(" ", "T"));
+    const hour = dt.getHours();
+    const bucket = TIME_BUCKETS.find((b) => (b.from <= b.to ? hour >= b.from && hour <= b.to : hour >= b.from || hour <= b.to))!;
+    const key = `${DAY_NAMES[dt.getDay()]}|${bucket.name}`;
+    if (!grid.has(key)) grid.set(key, { posts: 0, eng: 0 });
+    const cell = grid.get(key)!;
+    cell.posts++;
+    cell.eng += engagement(p);
+  }
+  const cells: HeatCell[] = [];
+  for (const day of DAY_NAMES) {
+    for (const b of TIME_BUCKETS) {
+      const c = grid.get(`${day}|${b.name}`) ?? { posts: 0, eng: 0 };
+      cells.push({ day, bucket: b.name, posts: c.posts, avgEng: c.posts > 0 ? Math.round(c.eng / c.posts) : 0, norm: 0 });
+    }
+  }
+  const max = Math.max(...cells.map((c) => c.avgEng), 1);
+  cells.forEach((c) => (c.norm = c.avgEng / max));
+  const best = cells.reduce<HeatCell | null>((a, c) => (c.posts >= 5 && (!a || c.avgEng > a.avgEng) ? c : a), null);
+  return { platforms, days: DAY_NAMES, buckets: TIME_BUCKETS.map((b) => b.name), cells, best };
+}
+
+/* ---------- Competitor watch — share of voice and the gap table ----------
+   Honest framing: these are posts about TakaPay that praise NgoodPay, so this
+   measures how loudly the competitor features in OUR conversation — not
+   NgoodPay's own sentiment. A true benchmark needs an NgoodPay source adapter. */
+
+export interface VoiceWeek {
+  week: string;
+  total: number;
+  competitor: number;
+  share: number; // % of all counted posts that week
+}
+
+export function shareOfVoice(posts: Post[]): VoiceWeek[] {
+  const weeks = new Map<number, { total: number; competitor: number }>();
+  for (const p of posts) {
+    const day = parseInt(p.timestamp.slice(8, 10), 10);
+    const w = Math.min(Math.floor((day - 1) / 7), 4);
+    if (!weeks.has(w)) weeks.set(w, { total: 0, competitor: 0 });
+    const row = weeks.get(w)!;
+    row.total++;
+    if (p.topic === "competitor") row.competitor++;
+  }
+  const label = (w: number) => `Jun ${w * 7 + 1}–${Math.min(w * 7 + 7, 30)}`;
+  return [...weeks.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([w, r]) => ({ week: label(w), total: r.total, competitor: r.competitor, share: Math.round((1000 * r.competitor) / Math.max(r.total, 1)) / 10 }));
+}
+
+export interface CompetitorGap {
+  claim: string;
+  count: number;
+  sample: string;
+  againstLabel: string; // the TakaPay theme the claim lands on
+  againstTopics: string[];
+  againstTotal: number;
+  againstNegShare: number;
+  againstPosShare: number;
+  // exposed: our own posts on that theme are mostly negative — the claim lands
+  // on a real weakness. defensible: ours are mostly positive — we have a
+  // counter-claim. unproven: ours are neutral — nobody is vouching for us.
+  status: "exposed" | "defensible" | "unproven";
+}
+
+// Each competitor claim, matched to what OUR posts say on the same theme.
+// Where our theme is mostly negative the claim is landing on a real weakness;
+// where ours is positive we have a counter-claim ready.
+const GAP_MATCHERS: { claim: string; pattern: RegExp; against: string; topics: string[] }[] = [
+  { claim: "Better customer care", pattern: /customer care/i, against: "Customer care", topics: ["customer_care"] },
+  { claim: "More agents on the ground", pattern: /agent/i, against: "Agent network", topics: ["agent_network"] },
+  { claim: "Bigger cashback & recharge bonuses", pattern: /cashback|bonus/i, against: "Cashback offers", topics: ["cashback_offer"] },
+  { claim: "Lower cash-out charges", pattern: /charge|switch/i, against: "Charges & fees", topics: ["charges_fees"] },
+  { claim: "Faster, cleaner app", pattern: /faster|ui|clean|app/i, against: "App experience", topics: ["app_experience", "app_crash", "login_otp"] },
+];
+
+export function competitorGaps(posts: Post[]): CompetitorGap[] {
+  const comp = posts.filter((p) => p.topic === "competitor");
+  const byTopic = new Map(topicBreakdown(posts).map((r) => [r.topic, r]));
+  const out: CompetitorGap[] = [];
+  const claimed = new Set<number>();
+  for (const m of GAP_MATCHERS) {
+    const members = comp.filter((p) => !claimed.has(p.id) && m.pattern.test(p.text));
+    if (members.length === 0) continue;
+    members.forEach((p) => claimed.add(p.id));
+    const rows = m.topics.map((t) => byTopic.get(t)).filter((r): r is NonNullable<typeof r> => !!r);
+    const total = rows.reduce((s, r) => s + r.total, 0);
+    const neg = rows.reduce((s, r) => s + r.negative, 0);
+    const pos = rows.reduce((s, r) => s + r.positive, 0);
+    const negShare = Math.round((100 * neg) / Math.max(total, 1));
+    const posShare = Math.round((100 * pos) / Math.max(total, 1));
+    out.push({
+      claim: m.claim,
+      count: members.length,
+      sample: members.reduce((a, b) => (a.text.length <= b.text.length ? a : b)).text,
+      againstLabel: m.against,
+      againstTopics: m.topics,
+      againstTotal: total,
+      againstNegShare: negShare,
+      againstPosShare: posShare,
+      status: negShare >= 50 ? "exposed" : posShare >= 50 ? "defensible" : "unproven",
+    });
+  }
+  return out.sort((a, b) => b.count - a.count);
+}
+
+/* ---------- Intents — what each post is trying to DO ----------
+   The dataset has no intent field, so intent is derived from text and topic
+   with simple, disclosed rules. Precedence matters: a billing question is a
+   billing issue first, a question second. */
+
+export const INTENTS = ["Complaint", "Inquiry", "Support request", "Billing issue", "Praise", "Feedback"] as const;
+export type Intent = (typeof INTENTS)[number];
+
+export const INTENT_COLOR: Record<Intent, string> = {
+  Complaint: "#602494",
+  Inquiry: "#37C0B0",
+  Feedback: "#0FB7E6",
+  "Support request": "#F5C451",
+  "Billing issue": "#D92D20",
+  Praise: "#A1DA6C",
+};
+
+const QUESTION_RE = /\?|kivabe|kibhabe|keno\b|kobe\b|kothay|how (?:do|to|can)|why |when will|কিভাবে|কেন|কবে|কোথায়/i;
+const SUPPORT_RE = /helpline|customer care|support|complain kor|হেল্প|সাপোর্ট|কাস্টমার কেয়ার/i;
+
+export function intentOf(p: Post): Intent {
+  if (p.topic === "charges_fees") return "Billing issue";
+  if (p.topic === "customer_care" || SUPPORT_RE.test(p.text)) return "Support request";
+  if (p.topic === "feature_query" || QUESTION_RE.test(p.text)) return "Inquiry";
+  if (p.sentiment === "negative") return "Complaint";
+  if (p.sentiment === "positive") return "Praise";
+  return "Feedback";
+}
+
+export function intentSummary(posts: Post[]) {
+  const c = new Map<Intent, number>();
+  posts.forEach((p) => {
+    const i = intentOf(p);
+    c.set(i, (c.get(i) ?? 0) + 1);
+  });
+  return INTENTS.map((i) => ({ intent: i, n: c.get(i) ?? 0 })).filter((r) => r.n > 0);
+}
+
+export function intentTrend(posts: Post[]) {
+  const days = new Map<string, Record<string, number>>();
+  for (const p of posts) {
+    const d = p.timestamp.slice(0, 10);
+    if (!days.has(d)) days.set(d, {});
+    const row = days.get(d)!;
+    const i = intentOf(p);
+    row[i] = (row[i] ?? 0) + 1;
+  }
+  return [...days.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, row]) => {
+      const out: Record<string, number | string> = { date: date.slice(8) };
+      for (const i of INTENTS) out[i] = row[i] ?? 0;
+      return out;
+    });
+}
+
+/* ---------- Date ranges — the picker's contract ----------
+   Dates are "YYYY-MM-DD" strings; the dataset spans June 2026 only. */
+
+export interface DateRange {
+  a: string;
+  b: string;
+}
+
+export const DATA_RANGE: DateRange = { a: "2026-06-01", b: "2026-06-30" };
+
+export const inRange = (p: Post, r: DateRange) => {
+  const d = p.timestamp.slice(0, 10);
+  return d >= r.a && d <= r.b;
+};
+
+export const rangeLabel = (r: DateRange) => {
+  const f = (s: string) => `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][parseInt(s.slice(5, 7), 10) - 1]} ${parseInt(s.slice(8, 10), 10)}`;
+  return `${f(r.a)} — ${f(r.b)}`;
+};

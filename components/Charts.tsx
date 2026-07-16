@@ -110,6 +110,84 @@ export function TopicGroupBars({
   );
 }
 
+/* Competitor share of the conversation, weekly. Bars, not a line — five points
+   is too few for a trend line to be honest. Purple = the "watch" series color. */
+export function ShareOfVoiceChart({ data }: { data: { week: string; total: number; competitor: number; share: number }[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={230}>
+      <BarChart data={data} margin={{ top: 22, right: 8, left: -18, bottom: 0 }} barSize={34}>
+        <CartesianGrid stroke={GRID} vertical={false} />
+        <XAxis dataKey="week" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} interval={0} />
+        <YAxis tick={AXIS} tickLine={false} axisLine={false} unit="%" allowDecimals={false} />
+        <Tooltip
+          contentStyle={TOOLTIP_STYLE}
+          cursor={{ fill: "#f4f4f5" }}
+          formatter={(v: number, _n, item) => {
+            const p = item.payload as { competitor: number; total: number };
+            return [`${v}% — ${p.competitor} of ${p.total} posts`, "NgoodPay mentions"];
+          }}
+        />
+        <Bar isAnimationActive={false} dataKey="share" fill="#602494" radius={[4, 4, 0, 0]}>
+          <LabelList dataKey="share" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 11, fontWeight: 700, fill: "#56535e" }} />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* Topic Sentiment Split — every topic on one axis, stacked by sentiment.
+   Bar height = mentions, so big topics read big; click a bar to see the posts. */
+export function TopicSentimentChart({
+  data, onFocus,
+}: {
+  data: { topic: string; label: string; positive: number; neutral: number; negative: number; total: number }[];
+  onFocus: (topic: string) => void;
+}) {
+  const shorten = (s: string) => (s.length > 10 ? `${s.slice(0, 9)}..` : s);
+  return (
+    <ResponsiveContainer width="100%" height={320}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 14 }} barSize={26}>
+        <CartesianGrid stroke={GRID} vertical={false} />
+        <XAxis dataKey="label" tick={AXIS} tickFormatter={shorten} tickLine={false} axisLine={{ stroke: GRID }} interval={0}
+          label={{ value: "Topics", position: "insideBottom", offset: -10, style: AXIS_TITLE }} />
+        <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false}
+          label={{ value: "Mentions", angle: -90, position: "insideLeft", offset: 18, style: AXIS_TITLE }} />
+        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [`${v} posts`, cap(n)]} cursor={{ fill: "#f4f4f5" }} />
+        <Legend verticalAlign="top" align="center" formatter={(v) => cap(v)} iconType="square" iconSize={10} wrapperStyle={{ ...LEGEND, paddingBottom: 10 }} />
+        <Bar isAnimationActive={false} dataKey="positive" stackId="s" fill={SENTIMENT_COLOR.positive} stroke="#fff" strokeWidth={1} onClick={(d) => onFocus(d.topic)} cursor="pointer" />
+        <Bar isAnimationActive={false} dataKey="negative" stackId="s" fill={SENTIMENT_COLOR.negative} stroke="#fff" strokeWidth={1} onClick={(d) => onFocus(d.topic)} cursor="pointer" />
+        <Bar isAnimationActive={false} dataKey="neutral" stackId="s" fill={SENTIMENT_COLOR.neutral} stroke="#fff" strokeWidth={1} radius={[4, 4, 0, 0]} onClick={(d) => onFocus(d.topic)} cursor="pointer" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* Intent Based Mentions — daily counts per derived conversation signal */
+export function IntentTrendChart({
+  data, intents, colors,
+}: {
+  data: Record<string, number | string>[];
+  intents: readonly string[];
+  colors: Record<string, string>;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <LineChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 14 }}>
+        <CartesianGrid stroke={GRID} vertical={false} />
+        <XAxis dataKey="date" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} interval={3}
+          label={{ value: "Days", position: "insideBottom", offset: -10, style: AXIS_TITLE }} />
+        <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false}
+          label={{ value: "Mentions", angle: -90, position: "insideLeft", offset: 18, style: AXIS_TITLE }} />
+        <Tooltip contentStyle={TOOLTIP_STYLE} labelFormatter={(d) => `June ${d}, 2026`} formatter={(v: number, n: string) => [`${v} posts`, n]} />
+        <Legend verticalAlign="top" align="center" iconType="square" iconSize={10} wrapperStyle={{ ...LEGEND, paddingBottom: 8 }} />
+        {intents.map((i) => (
+          <Line key={i} isAnimationActive={false} type="linear" dataKey={i} stroke={colors[i]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+        ))}
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
 const LANG_COLORS = ["#2EA093", "#602494", "#0FB7E6"];
 
 export function LanguageDonut({ data, total }: { data: { lang: string; n: number }[]; total: number }) {
