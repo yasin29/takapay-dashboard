@@ -1,0 +1,703 @@
+{
+ "raw_records": 660,
+ "counted_records": 589,
+ "excluded_off_topic": 61,
+ "removed_duplicates": 10,
+ "relabeled_sentiment": 37,
+ "off_topic": [
+  {
+   "id": 1202,
+   "text": "Ajke Uttara te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1438,
+   "text": "Ei Chittagong er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1528,
+   "text": "Ei Banani er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1210,
+   "text": "Ajke Rajshahi te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1604,
+   "text": "Ajke Chittagong te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1134,
+   "text": "Traffic ajke Sylhet e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1053,
+   "text": "Kal semester final, ekhono porini kichui 😭"
+  },
+  {
+   "id": 1092,
+   "text": "Traffic ajke Banani e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1217,
+   "text": "Ajke Gulshan 1 te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1286,
+   "text": "Traffic ajke Rajshahi e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1376,
+   "text": "Ajke Rajshahi te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1449,
+   "text": "Ajke Dhanmondi 27 te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1166,
+   "text": "Traffic ajke Gulshan 1 e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1027,
+   "text": "Traffic ajke Chittagong e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1467,
+   "text": "Ajke Mirpur 10 te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1287,
+   "text": "Ajke Uttara te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1153,
+   "text": "Ei Gulshan 1 er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1182,
+   "text": "Traffic ajke Khulna e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1180,
+   "text": "Ajke Dhanmondi 27 te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1487,
+   "text": "Ajke Khulna te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1253,
+   "text": "Traffic ajke Mirpur 10 e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1416,
+   "text": "Ei Mirpur 10 er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1115,
+   "text": "Notun phone kinbo vabtesi, keu Teletalk er offer jano?"
+  },
+  {
+   "id": 1143,
+   "text": "Notun phone kinbo vabtesi, keu Airtel er offer jano?"
+  },
+  {
+   "id": 1124,
+   "text": "Notun phone kinbo vabtesi, keu Banglalink er offer jano?"
+  },
+  {
+   "id": 1616,
+   "text": "Ajke Motijheel te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1083,
+   "text": "Ei Bashundhara er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1228,
+   "text": "Ajke Gulshan 1 te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1136,
+   "text": "Ei Motijheel er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1242,
+   "text": "Ei Sylhet er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1082,
+   "text": "Ei Mohakhali er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1551,
+   "text": "Ajke Farmgate te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1075,
+   "text": "Argentina kal jitbe to? Messi form e ache mone hoy."
+  },
+  {
+   "id": 1146,
+   "text": "Traffic ajke Farmgate e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1358,
+   "text": "Ei Farmgate er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1522,
+   "text": "Ei Khulna er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1486,
+   "text": "Ajke Mohakhali te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1162,
+   "text": "Ajke Sylhet te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1205,
+   "text": "Traffic ajke Motijheel e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1380,
+   "text": "Ajke Dhanmondi 27 te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1080,
+   "text": "Traffic ajke Dhanmondi 27 e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1171,
+   "text": "Traffic ajke Bashundhara e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1584,
+   "text": "Ajke Banani te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1266,
+   "text": "Ajke Motijheel te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1500,
+   "text": "Traffic ajke Mohakhali e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1121,
+   "text": "Ei Rajshahi er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1301,
+   "text": "Ajke Mohakhali te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1446,
+   "text": "Ajke Gulshan 1 te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1536,
+   "text": "Ajke Chittagong te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1267,
+   "text": "Ajke Banani te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1463,
+   "text": "Ajke Uttara te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1227,
+   "text": "Ei Dhanmondi 27 er biryani ta must try, khub valo."
+  },
+  {
+   "id": 1470,
+   "text": "Ajke Rajshahi te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1426,
+   "text": "Ajke Bashundhara te prochur bristi, office jete 30 min deri hoye gelo."
+  },
+  {
+   "id": 1518,
+   "text": "Ajke Mohakhali te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1090,
+   "text": "Ajke Bashundhara te prochur bristi, office jete 1 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1396,
+   "text": "Ajke Farmgate te prochur bristi, office jete 2 ghonta deri hoye gelo."
+  },
+  {
+   "id": 1084,
+   "text": "Traffic ajke Uttara e insane, 2 ghonta laglo pouchte."
+  },
+  {
+   "id": 1033,
+   "text": "Notun phone kinbo vabtesi, keu Grameenphone er offer jano?"
+  },
+  {
+   "id": 1147,
+   "text": "Notun phone kinbo vabtesi, keu Robi er offer jano?"
+  },
+  {
+   "id": 1556,
+   "text": "Ei Uttara er biryani ta must try, khub valo."
+  }
+ ],
+ "duplicates": [
+  {
+   "id": 1660,
+   "duplicate_of": 1237,
+   "text": "Instant Airtel recharge on TakaPay, 2500 taka, done before I finished my tea."
+  },
+  {
+   "id": 1653,
+   "duplicate_of": 1527,
+   "text": "5000 taka TakaPay theke katlo but receiver pay nai. 2 din dhore atke ache."
+  },
+  {
+   "id": 1654,
+   "duplicate_of": 1054,
+   "text": "TakaPay দিয়ে tuition fee দেওয়া যায় কিনা কেউ বলতে পারবেন?"
+  },
+  {
+   "id": 1656,
+   "duplicate_of": 1573,
+   "text": "Instant Robi recharge on TakaPay, 2500 taka, done before I finished my tea."
+  },
+  {
+   "id": 1652,
+   "duplicate_of": 1506,
+   "text": "আমার একাউন্ট থেকে 5000 টাকা কেটে নিয়েছে কিন্তু Grameenphone রিচার্জ হয়নি। TakaPay এর কোনো হেল্প নেই।"
+  },
+  {
+   "id": 1059,
+   "duplicate_of": 1658,
+   "text": "Transaction fail holo tao 2000 taka kete nilo, TakaPay er kono response nai."
+  },
+  {
+   "id": 1655,
+   "duplicate_of": 1465,
+   "text": "TakaPay diye baba ke 5000 taka pathalam, 3 din hoye gelo ekhono pending!"
+  },
+  {
+   "id": 1651,
+   "duplicate_of": 1282,
+   "text": "TakaPay OTP ashteci na, 2 ghonta dhore login e atke achi. Fix koro please."
+  },
+  {
+   "id": 1659,
+   "duplicate_of": 1361,
+   "text": "Instant Teletalk recharge on TakaPay, 1500 taka, done before I finished my tea."
+  },
+  {
+   "id": 1150,
+   "duplicate_of": 1657,
+   "text": "Transaction fail holo tao 5000 taka kete nilo, TakaPay er kono response nai."
+  }
+ ],
+ "relabeled": [
+  {
+   "id": 1642,
+   "from": "positive",
+   "to": "negative",
+   "score": 91,
+   "evidence": [
+    "পৌঁছায়নি"
+   ],
+   "text": "amar bon কে টাকা পাঠিয়েছি sararat আগে, এখনো পৌঁছায়নি। TakaPay কী করছে?"
+  },
+  {
+   "id": 1514,
+   "from": "negative",
+   "to": "positive",
+   "score": 20,
+   "evidence": [
+    "before i finished my tea"
+   ],
+   "text": "Instant Banglalink recharge on TakaPay, 2500 taka, done before I finished my tea."
+  },
+  {
+   "id": 1344,
+   "from": "positive",
+   "to": "negative",
+   "score": 84,
+   "evidence": [
+    "পৌঁছায়নি"
+   ],
+   "text": "landlord কে টাকা পাঠিয়েছি sararat আগে, এখনো পৌঁছায়নি। TakaPay কী করছে?"
+  },
+  {
+   "id": 1580,
+   "from": "positive",
+   "to": "negative",
+   "score": 82,
+   "evidence": [
+    "পৌঁছায়নি"
+   ],
+   "text": "landlord কে টাকা পাঠিয়েছি 2 ghonta আগে, এখনো পৌঁছায়নি। TakaPay কী করছে?"
+  },
+  {
+   "id": 1045,
+   "from": "positive",
+   "to": "negative",
+   "score": 83,
+   "evidence": [
+    "atke achi",
+    "otp ash",
+    "fix koro"
+   ],
+   "text": "TakaPay OTP ashteci na, 24 ghonta dhore login e atke achi. Fix koro please."
+  },
+  {
+   "id": 1623,
+   "from": "positive",
+   "to": "negative",
+   "score": 75,
+   "evidence": [
+    "pending!"
+   ],
+   "text": "TakaPay diye amar friend ke 800 taka pathalam, 3 din hoye gelo ekhono pending!"
+  },
+  {
+   "id": 1596,
+   "from": "positive",
+   "to": "negative",
+   "score": 72,
+   "evidence": [
+    "atke ache",
+    "katlo but",
+    "pay nai"
+   ],
+   "text": "2000 taka TakaPay theke katlo but receiver pay nai. 2 ghonta dhore atke ache."
+  },
+  {
+   "id": 1349,
+   "from": "positive",
+   "to": "negative",
+   "score": 90,
+   "evidence": [
+    "পৌঁছায়নি"
+   ],
+   "text": "amar friend কে টাকা পাঠিয়েছি 24 ghonta আগে, এখনো পৌঁছায়নি। TakaPay কী করছে?"
+  },
+  {
+   "id": 1469,
+   "from": "positive",
+   "to": "negative",
+   "score": 74,
+   "evidence": [
+    "পৌঁছায়নি"
+   ],
+   "text": "ma কে টাকা পাঠিয়েছি 1 week আগে, এখনো পৌঁছায়নি। TakaPay কী করছে?"
+  },
+  {
+   "id": 1389,
+   "from": "positive",
+   "to": "negative",
+   "score": 72,
+   "evidence": [
+    "atke ache",
+    "katlo but",
+    "pay nai"
+   ],
+   "text": "1000 taka TakaPay theke katlo but receiver pay nai. 24 ghonta dhore atke ache."
+  },
+  {
+   "id": 1324,
+   "from": "positive",
+   "to": "negative",
+   "score": 81,
+   "evidence": [
+    "পৌঁছায়নি"
+   ],
+   "text": "landlord কে টাকা পাঠিয়েছি 24 ghonta আগে, এখনো পৌঁছায়নি। TakaPay কী করছে?"
+  },
+  {
+   "id": 1336,
+   "from": "positive",
+   "to": "negative",
+   "score": 76,
+   "evidence": [
+    "pending!"
+   ],
+   "text": "TakaPay diye ma ke 300 taka pathalam, 30 min hoye gelo ekhono pending!"
+  },
+  {
+   "id": 1624,
+   "from": "positive",
+   "to": "negative",
+   "score": 83,
+   "evidence": [
+    "pending!"
+   ],
+   "text": "TakaPay diye colleague ke 500 taka pathalam, 4 din hoye gelo ekhono pending!"
+  },
+  {
+   "id": 1431,
+   "from": "positive",
+   "to": "negative",
+   "score": 79,
+   "evidence": [
+    "হেল্প নেই",
+    "রিচার্জ হয়নি",
+    "কেটে নিয়েছে কিন্তু"
+   ],
+   "text": "আমার একাউন্ট থেকে 1000 টাকা কেটে নিয়েছে কিন্তু Grameenphone রিচার্জ হয়নি। TakaPay এর কোনো হেল্প নেই।"
+  },
+  {
+   "id": 1118,
+   "from": "positive",
+   "to": "negative",
+   "score": 93,
+   "evidence": [
+    "atke ache",
+    "katlo but",
+    "pay nai"
+   ],
+   "text": "10000 taka TakaPay theke katlo but receiver pay nai. 24 ghonta dhore atke ache."
+  },
+  {
+   "id": 1599,
+   "from": "negative",
+   "to": "positive",
+   "score": 10,
+   "evidence": [
+    "darun",
+    "cashback pelam"
+   ],
+   "text": "TakaPay e tuition fee dilam ar 2500 taka cashback pelam, darun offer!"
+  },
+  {
+   "id": 1617,
+   "from": "positive",
+   "to": "negative",
+   "score": 81,
+   "evidence": [
+    "পৌঁছায়নি"
+   ],
+   "text": "baba কে টাকা পাঠিয়েছি 2 ghonta আগে, এখনো পৌঁছায়নি। TakaPay কী করছে?"
+  },
+  {
+   "id": 1459,
+   "from": "negative",
+   "to": "positive",
+   "score": 16,
+   "evidence": [
+    "before i finished my tea"
+   ],
+   "text": "Instant Teletalk recharge on TakaPay, 800 taka, done before I finished my tea."
+  },
+  {
+   "id": 1412,
+   "from": "positive",
+   "to": "negative",
+   "score": 81,
+   "evidence": [
+    "পৌঁছায়নি"
+   ],
+   "text": "amar friend কে টাকা পাঠিয়েছি 2 din আগে, এখনো পৌঁছায়নি। TakaPay কী করছে?"
+  },
+  {
+   "id": 1024,
+   "from": "negative",
+   "to": "positive",
+   "score": 20,
+   "evidence": [
+    "সাথে সাথে চলে গেল"
+   ],
+   "text": "ma কে 2000 টাকা পাঠালাম TakaPay দিয়ে, সাথে সাথে চলে গেল।"
+  },
+  {
+   "id": 1108,
+   "from": "positive",
+   "to": "negative",
+   "score": 92,
+   "evidence": [
+    "হেল্প নেই",
+    "রিচার্জ হয়নি",
+    "কেটে নিয়েছে কিন্তু"
+   ],
+   "text": "আমার একাউন্ট থেকে 1500 টাকা কেটে নিয়েছে কিন্তু Teletalk রিচার্জ হয়নি। TakaPay এর কোনো হেল্প নেই।"
+  },
+  {
+   "id": 1060,
+   "from": "negative",
+   "to": "positive",
+   "score": 19,
+   "evidence": [
+    "সাথে সাথে চলে গেল"
+   ],
+   "text": "colleague কে 800 টাকা পাঠালাম TakaPay দিয়ে, সাথে সাথে চলে গেল।"
+  },
+  {
+   "id": 1337,
+   "from": "negative",
+   "to": "positive",
+   "score": 7,
+   "evidence": [
+    "darun",
+    "cashback pelam"
+   ],
+   "text": "TakaPay e tuition fee dilam ar 1000 taka cashback pelam, darun offer!"
+  },
+  {
+   "id": 1566,
+   "from": "positive",
+   "to": "negative",
+   "score": 94,
+   "evidence": [
+    "atke ache",
+    "katlo but",
+    "pay nai"
+   ],
+   "text": "1500 taka TakaPay theke katlo but receiver pay nai. 1 week dhore atke ache."
+  },
+  {
+   "id": 1545,
+   "from": "negative",
+   "to": "positive",
+   "score": 19,
+   "evidence": [
+    "সাথে সাথে চলে গেল"
+   ],
+   "text": "bhai কে 2000 টাকা পাঠালাম TakaPay দিয়ে, সাথে সাথে চলে গেল।"
+  },
+  {
+   "id": 1232,
+   "from": "positive",
+   "to": "negative",
+   "score": 75,
+   "evidence": [
+    "হেল্প নেই",
+    "রিচার্জ হয়নি",
+    "কেটে নিয়েছে কিন্তু"
+   ],
+   "text": "আমার একাউন্ট থেকে 300 টাকা কেটে নিয়েছে কিন্তু Teletalk রিচার্জ হয়নি। TakaPay এর কোনো হেল্প নেই।"
+  },
+  {
+   "id": 1481,
+   "from": "positive",
+   "to": "negative",
+   "score": 91,
+   "evidence": [
+    "atke ache",
+    "katlo but",
+    "pay nai"
+   ],
+   "text": "800 taka TakaPay theke katlo but receiver pay nai. 2 din dhore atke ache."
+  },
+  {
+   "id": 1388,
+   "from": "positive",
+   "to": "negative",
+   "score": 83,
+   "evidence": [
+    "pending!"
+   ],
+   "text": "TakaPay diye colleague ke 500 taka pathalam, 30 min hoye gelo ekhono pending!"
+  },
+  {
+   "id": 1283,
+   "from": "negative",
+   "to": "positive",
+   "score": 20,
+   "evidence": [
+    "সাথে সাথে চলে গেল"
+   ],
+   "text": "bhai কে 800 টাকা পাঠালাম TakaPay দিয়ে, সাথে সাথে চলে গেল।"
+  },
+  {
+   "id": 1610,
+   "from": "negative",
+   "to": "positive",
+   "score": 10,
+   "evidence": [
+    "darun",
+    "cashback pelam"
+   ],
+   "text": "TakaPay e credit card bill dilam ar 300 taka cashback pelam, darun offer!"
+  },
+  {
+   "id": 1239,
+   "from": "positive",
+   "to": "negative",
+   "score": 73,
+   "evidence": [
+    "pending!"
+   ],
+   "text": "TakaPay diye amar bon ke 800 taka pathalam, 3 din hoye gelo ekhono pending!"
+  },
+  {
+   "id": 1176,
+   "from": "positive",
+   "to": "negative",
+   "score": 94,
+   "evidence": [
+    "crash"
+   ],
+   "text": "TakaPay app barbar crash korche, credit card bill dite partesi na. Worst timing."
+  },
+  {
+   "id": 1402,
+   "from": "negative",
+   "to": "positive",
+   "score": 12,
+   "evidence": [
+    "darun",
+    "cashback pelam"
+   ],
+   "text": "TakaPay e tuition fee dilam ar 2000 taka cashback pelam, darun offer!"
+  },
+  {
+   "id": 1569,
+   "from": "positive",
+   "to": "negative",
+   "score": 92,
+   "evidence": [
+    "atke ache",
+    "katlo but",
+    "pay nai"
+   ],
+   "text": "1000 taka TakaPay theke katlo but receiver pay nai. 2 ghonta dhore atke ache."
+  },
+  {
+   "id": 1154,
+   "from": "negative",
+   "to": "positive",
+   "score": 7,
+   "evidence": [
+    "before i finished my tea"
+   ],
+   "text": "Instant Banglalink recharge on TakaPay, 1500 taka, done before I finished my tea."
+  },
+  {
+   "id": 1492,
+   "from": "negative",
+   "to": "positive",
+   "score": 16,
+   "evidence": [
+    "before i finished my tea"
+   ],
+   "text": "Instant Robi recharge on TakaPay, 5000 taka, done before I finished my tea."
+  },
+  {
+   "id": 1587,
+   "from": "positive",
+   "to": "negative",
+   "score": 93,
+   "evidence": [
+    "atke ache",
+    "katlo but",
+    "pay nai"
+   ],
+   "text": "2000 taka TakaPay theke katlo but receiver pay nai. 4 din dhore atke ache."
+  }
+ ]
+}
