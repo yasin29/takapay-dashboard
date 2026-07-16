@@ -3,3 +3,6 @@ node_modules/
 out/
 *.tsbuildinfo
 next-env.d.ts
+
+# Local Claude Code tooling — available to the editor, never part of this submission.
+.claude/
